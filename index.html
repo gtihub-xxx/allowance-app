@@ -91,6 +91,9 @@
     </form>
   </div>
 
+  <button onclick="toggleHistory()" style="margin-top:1em;">履歴を見る</button>
+  <div id="history" style="display:none; margin-top:1em;"></div>
+
   <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
 
   <div class="calendar">
@@ -163,6 +166,32 @@
         other.style.display = 'none';
       }
     }
+function toggleHistory() {
+  const historyDiv = document.getElementById("history");
+  if (historyDiv.style.display === "none") {
+    historyDiv.innerHTML = "読み込み中...";
+    historyDiv.style.display = "block";
+    fetchHistory("A").then(aHtml => {
+      fetchHistory("H").then(hHtml => {
+        historyDiv.innerHTML = aHtml + hHtml;
+      });
+    });
+  } else {
+    historyDiv.style.display = "none";
+  }
+}
+
+async function fetchHistory(child) {
+  const url = `https://script.google.com/macros/s/AKfycbzovJgmWdJ_NyESFFxTxNVBkTqL80Z2fWxIPMa8hcKiYrN1v6qY3mGatKpySNlJjWpm/exec?history=true&child=${child}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>点数</th><th>科目</th><th>手伝い</th><th>金額</th></tr>`;
+  for (let row of data) {
+    html += `<tr><td>${row.date}</td><td>${row.bedtime}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
+  }
+  html += `</table>`;
+  return html;
+}
 </script>
 </body>
 </html>
