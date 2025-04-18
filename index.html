@@ -10,7 +10,9 @@
     .summary { font-size: 1.2em; margin-bottom: 0.5em; }
     .activity { margin-bottom: 0.3em; }
     .calendar { margin-top: 1em; }
-    .record-btn { margin-top: 1em; display: inline-block; padding: 0.5em 1em; background: #007bff; color: #fff; text-decoration: none; border-radius: 4px; }
+    .record-btn { margin-top: 1em; display: inline-block; padding: 0.5em 1em; background: #007bff; color: #fff; text-decoration: none; border-radius: 4px; cursor: pointer; }
+    .form { display: none; border: 1px solid #aaa; padding: 1em; margin-top: 1em; background: #f9f9f9; }
+    .form input, .form select { margin-bottom: 0.5em; display: block; width: 100%; padding: 0.4em; }
   </style>
 </head>
 <body>
@@ -22,7 +24,23 @@
     <div class="activity">遅寝：<span id="lateA">0</span> 回</div>
     <div class="activity">テスト（100点）：<span id="testA">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskA">0</span> 回</div>
-    <a href="#" class="record-btn">今日の記録</a>
+    <div class="record-btn" onclick="toggleForm('A')">今日の記録</div>
+    <form class="form" id="formA" onsubmit="submitForm(event, 'A')">
+      <label>日付：<input type="date" name="date" required></label>
+      <label>就寝時間：<input type="time" name="bedtime"></label>
+      <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
+      <label>お手伝い：
+        <select name="task" onchange="handleOther(this, 'A')">
+          <option value="">--選択--</option>
+          <option value="皿洗い">皿洗い</option>
+          <option value="掃除機">掃除機</option>
+          <option value="洗濯物たたみ">洗濯物たたみ</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" name="taskOther" id="taskOtherA" placeholder="お手伝い内容を入力" style="display:none;">
+      </label>
+      <button type="submit">送信</button>
+    </form>
   </div>
 
   <div class="child-box" id="childH">
@@ -31,12 +49,70 @@
     <div class="activity">遅寝：<span id="lateH">0</span> 回</div>
     <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskH">0</span> 回</div>
-    <a href="#" class="record-btn">今日の記録</a>
+    <div class="record-btn" onclick="toggleForm('H')">今日の記録</div>
+    <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
+      <label>日付：<input type="date" name="date" required></label>
+      <label>就寝時間：<input type="time" name="bedtime"></label>
+      <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
+      <label>お手伝い：
+        <select name="task" onchange="handleOther(this, 'H')">
+          <option value="">--選択--</option>
+          <option value="皿洗い">皿洗い</option>
+          <option value="掃除機">掃除機</option>
+          <option value="洗濯物たたみ">洗濯物たたみ</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" name="taskOther" id="taskOtherH" placeholder="お手伝い内容を入力" style="display:none;">
+      </label>
+      <button type="submit">送信</button>
+    </form>
   </div>
 
   <div class="calendar">
     <h2>4月の記録</h2>
     <p>※ 日付ごとの記録をあとで追加予定</p>
   </div>
+
+  <script>
+    const endpoint = "https://script.google.com/macros/s/AKfycbyki1p2bx5hLgo5Z-lRlPSAaN2rIdPsvPiekzM8X1cF5xIDEVCFoQK2U3ThgqlYWO_p/exec";
+
+    function toggleForm(child) {
+      document.getElementById("form" + child).style.display = 'block';
+    }
+
+    function handleOther(select, child) {
+      const other = document.getElementById("taskOther" + child);
+      if (select.value === "その他") {
+        other.style.display = 'block';
+      } else {
+        other.style.display = 'none';
+      }
+    }
+
+    function submitForm(event, child) {
+      event.preventDefault();
+      const form = event.target;
+      const data = {
+        child: child,
+        date: form.date.value,
+        bedtime: form.bedtime.value,
+        test: form.test.value,
+        task: form.task.value === "その他" ? form.taskOther.value : form.task.value
+      };
+
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(res => res.text())
+      .then(msg => {
+        alert("記録を送信しました：" + msg);
+        form.reset();
+        form.style.display = 'none';
+      })
+      .catch(err => alert("送信エラー：" + err));
+    }
+  </script>
 </body>
 </html>
