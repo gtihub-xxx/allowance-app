@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理</h1>
+  <h1>お小遣い管理2</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -61,7 +61,7 @@
     <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskH">0</span> 回</div>
     <div class="record-btn" onclick="toggleForm('H')">今日の記録</div>
-    $1
+    <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
       <label>科目：
         <select name="subject" onchange="handleSubjectOther(this, 'H')">
           <option value="">--選択--</option>
