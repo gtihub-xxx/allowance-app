@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理9</h1>
+  <h1>お小遣い管理10</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -161,11 +161,13 @@
         const data = await res.json();
         let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>点数</th><th>科目</th><th>手伝い</th><th>金額</th></tr>`;
         for (let row of data) {
-          const date = new Date(row.date);
-          const bedtime = row.bedtime;
-          const [h, m] = bedtime.split(":").map(Number);
-          const dateStr = `${String(date.getFullYear() - 2000)}/${date.getMonth() + 1}/${date.getDate()}`;
-          const bedtimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          const dateObj = new Date(row.date);
+          const dateStr = `${String(dateObj.getFullYear() - 2000)}/${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+          let bedtimeStr = "";
+          if (row.bedtime && row.bedtime.includes(":")) {
+            const [h, m] = row.bedtime.split(":").map(Number);
+            bedtimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          }
           html += `<tr><td>${dateStr}</td><td>${bedtimeStr}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
         }
         html += `</table>`;
