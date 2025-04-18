@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理6</h1>
+  <h1>お小遣い管理</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -87,6 +87,8 @@
     </form>
   </div>
 
+  <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
+
   <div class="calendar">
     <h2>4月の記録</h2>
     <p>※ 日付ごとの記録をあとで追加予定</p>
@@ -127,7 +129,7 @@
       })
       .then(res => res.text())
       .then(msg => {
-        alert("記録を送信しました：" + msg);
+        document.getElementById("message").textContent = "記録を送信しました：" + msg;
         form.reset();
         form.style.display = 'none';
       })
