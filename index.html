@@ -182,7 +182,7 @@ function toggleHistory() {
 }
 
 async function fetchHistory(child) {
-  const url = `https://script.google.com/macros/s/AKfycbzAi18T68Hz2qOwsP2IRy7epAQrbt3gi4rieCriu9ZNcxCQFZIlI0-fI7IM0d3LkJg/exec?history=true&child=\${child}`;
+  const url = `https://script.google.com/macros/s/AKfycbzAi18T68Hz2qOwsP2IRy7epAQrbt3gi4rieCriu9ZNcxCQFZIlI0-fI7IM0d3LkJg/exec?history=true&child=${child}`;
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error("Network response was not ok");
