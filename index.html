@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お小遣い管理アプリ</title>
   <style>
     body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
@@ -28,12 +28,14 @@
     <div class="tab" data-tab="summary">月次集計</div>
   </div>
 
+  <!-- 記録入力 -->
   <div id="entry" class="tab-content active container">
     <label>子どもを選択：</label>
     <select id="childSelect">
       <option value="A">Aちゃん</option>
       <option value="H">Hちゃん</option>
     </select>
+
     <label>日付:</label>
     <input type="date" id="date">
     <label>就寝時間:</label>
@@ -46,11 +48,13 @@
     <div id="status" style="color:green;"></div>
   </div>
 
+  <!-- 記録一覧 -->
   <div id="history" class="tab-content container">
     <h2>記録一覧</h2>
     <p>記録一覧はGoogle Sheetsでご確認ください。</p>
   </div>
 
+  <!-- 月次集計 -->
   <div id="summary" class="tab-content container">
     <h2>月次集計</h2>
     <label>子どもを選択：</label>
@@ -65,7 +69,7 @@
   </div>
 
   <script>
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbwQk5kfD1WDsZ3D0RKVgL-0KNabGXSW6qXksAFzJckRiY2kaJGPLh5vn9_3Ut57a-bkmA/exec";
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbwQk5kfD1WDsZ3D0RKVgL-0KNabGXSW6qXksAFzJckRiY2kaJGPLh5vn9_3Ut57a-bkmA/exec"; // ← 実際のURLに差し替え済み
 
     // タブ切り替え
     document.querySelectorAll('.tab').forEach(tab => {
@@ -76,25 +80,23 @@
       });
     });
 
-    // 今日の日付を初期値に設定
-    document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+    // 初期日付設定
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('date').value = today;
 
-    // 送信ボタンイベント
+    // 記録送信
     document.getElementById("submitButton").addEventListener("click", () => {
       const child = document.getElementById('childSelect').value;
       const date = document.getElementById('date').value;
       const bedtime = document.getElementById('bedtime').value;
       const subject = document.getElementById('subject').value;
       const score = document.getElementById('score').value;
-
       if (!date) return alert('日付を入力してください');
 
       fetch(scriptUrl, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ child, date, bedtime, subject, score })
       }).then(() => {
         document.getElementById('status').textContent = '送信しました！';
@@ -105,12 +107,11 @@
       });
     });
 
-    // 集計データ取得
+    // 月次集計取得
     function fetchSummary() {
       const child = document.getElementById('childSummary').value;
       const month = document.getElementById('month').value;
       if (!month) return alert('月を選択してください');
-
       fetch(`${scriptUrl}?child=${child}&month=${month}`)
         .then(res => res.json())
         .then(data => {
@@ -120,10 +121,7 @@
             <p>・テスト100点: ${data.testPerfectCount}回</p>
             <p><strong>今月のお小遣い: ${data.totalAllowance}円</strong></p>
           `;
-        }).catch(e => {
-          console.error("集計取得エラー:", e);
-          alert('集計取得失敗');
-        });
+        }).catch(e => alert('集計取得失敗'));
     }
   </script>
 </body>
