@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理3</h1>
+  <h1>お小遣い管理4</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -199,6 +199,15 @@ async function fetchHistory(child) {
   }
 }
 }
+</script>
+<script>
+  document.querySelectorAll(".record-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = btn.getAttribute("onclick").match(/'(.*?)'/)[1];
+      const form = document.getElementById("form" + target);
+      form.style.display = form.style.display === 'block' ? 'none' : 'block';
+    });
+  });
 </script>
 </body>
 </html>
