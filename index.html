@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理</h1>
+  <h1>お小遣い管理6</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -27,7 +27,7 @@
     <div class="record-btn" onclick="toggleForm('A')">今日の記録</div>
     <form class="form" id="formA" onsubmit="submitForm(event, 'A')">
       <label>日付：<input type="date" name="date" required value="" class="today-date"></label>
-      <label>就寝時間：<input type="time" name="bedtime"></label>
+      <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
       
 <label>科目：
   <select name="subject" onchange="handleSubjectOther(this, 'A')">
@@ -133,11 +133,19 @@
       })
       .catch(err => alert("送信エラー：" + err));
     }
-      // ページ読み込み時に今日の日付を設定
+      // ページ読み込み時に今日の日付と現在時刻を設定
     window.addEventListener("DOMContentLoaded", () => {
       const today = new Date().toISOString().split("T")[0];
-      document.querySelectorAll(".today-date").forEach(input => {
+            document.querySelectorAll(".today-date").forEach(input => {
         input.value = today;
+      });
+
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hh}:${mm}`;
+      document.querySelectorAll(".now-time").forEach(input => {
+        input.value = currentTime;
       });
     });
 
