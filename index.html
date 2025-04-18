@@ -28,18 +28,7 @@
     <form class="form" id="formA" onsubmit="submitForm(event, 'A')">
       <label>日付：<input type="date" name="date" required value="" class="today-date"></label>
       <label>就寝時間：<input type="time" name="bedtime"></label>
-      <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
-<label>科目：
-  <select name="subject" onchange="handleSubjectOther(this, 'H')">
-    <option value="">--選択--</option>
-    <option value="国語">国語</option>
-    <option value="算数">算数</option>
-    <option value="理科">理科</option>
-    <option value="社会">社会</option>
-    <option value="その他">その他</option>
-  </select>
-  <input type="text" name="subjectOther" id="subjectOtherH" placeholder="科目を入力" style="display:none;">
-</label>
+      
 <label>科目：
   <select name="subject" onchange="handleSubjectOther(this, 'A')">
     <option value="">--選択--</option>
@@ -72,10 +61,18 @@
     <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskH">0</span> 回</div>
     <div class="record-btn" onclick="toggleForm('H')">今日の記録</div>
-    <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
-      <label>日付：<input type="date" name="date" required></label>
-      <label>就寝時間：<input type="time" name="bedtime"></label>
-      <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
+    $1
+      <label>科目：
+        <select name="subject" onchange="handleSubjectOther(this, 'H')">
+          <option value="">--選択--</option>
+          <option value="国語">国語</option>
+          <option value="算数">算数</option>
+          <option value="理科">理科</option>
+          <option value="社会">社会</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" name="subjectOther" id="subjectOtherH" placeholder="科目を入力" style="display:none;">
+      </label>
       <label>お手伝い：
         <select name="task" onchange="handleOther(this, 'H')">
           <option value="">--選択--</option>
@@ -119,7 +116,9 @@
       formData.append("date", form.date.value);
       formData.append("bedtime", form.bedtime.value);
       formData.append("test", form.test.value);
+            const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
       const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
+            formData.append("subject", subjectVal);
       formData.append("task", taskVal);
 
       fetch(endpoint, {
