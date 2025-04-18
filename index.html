@@ -165,7 +165,9 @@
           const dateStr = `${String(dateObj.getFullYear() - 2000)}/${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
           let bedtimeStr = "";
           if (row.bedtime && row.bedtime.includes(":")) {
-            const [h, m] = row.bedtime.split(":").map(Number);
+            const parts = row.bedtime.split(":").map(Number);
+            const h = parts[0];
+            const m = parts[1];
             bedtimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
           }
           html += `<tr><td>${dateStr}</td><td>${bedtimeStr}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
