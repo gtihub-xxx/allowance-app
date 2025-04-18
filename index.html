@@ -16,84 +16,45 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理6</h1>
+  <h1>お小遣い管理7</h1>
 
-  <!-- A -->
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
     <div class="activity">早寝：<span id="earlyA">0</span> 回</div>
     <div class="activity">遅寝：<span id="lateA">0</span> 回</div>
     <div class="activity">テスト（100点）：<span id="testA">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskA">0</span> 回</div>
-    <div class="record-btn" onclick="toggleForm('A')">今日の記録</div>
+    <button class="record-btn" onclick="toggleForm('A')">今日の記録</button>
     <form class="form" id="formA" onsubmit="submitForm(event, 'A')">
       <label>日付：<input type="date" name="date" required class="today-date"></label>
       <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
       <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
-      <label>科目：
-        <select name="subject" onchange="handleSubjectOther(this, 'A')">
-          <option value="">--選択--</option>
-          <option value="国語">国語</option>
-          <option value="算数">算数</option>
-          <option value="理科">理科</option>
-          <option value="社会">社会</option>
-          <option value="その他">その他</option>
-        </select>
-        <input type="text" name="subjectOther" id="subjectOtherA" placeholder="科目を入力" style="display:none;">
-      </label>
-      <label>お手伝い：
-        <select name="task" onchange="handleOther(this, 'A')">
-          <option value="">--選択--</option>
-          <option value="皿洗い">皿洗い</option>
-          <option value="掃除機">掃除機</option>
-          <option value="洗濯物たたみ">洗濯物たたみ</option>
-          <option value="その他">その他</option>
-        </select>
-        <input type="text" name="taskOther" id="taskOtherA" placeholder="お手伝い内容を入力" style="display:none;">
-      </label>
+      <label>科目：<input type="text" name="subject"></label>
+      <label>お手伝い：<input type="text" name="task"></label>
       <button type="submit">送信</button>
     </form>
   </div>
 
-  <!-- H -->
   <div class="child-box" id="childH">
     <div class="summary">H さんの今月のお小遣い：<span id="totalH">300</span> 円</div>
     <div class="activity">早寝：<span id="earlyH">0</span> 回</div>
     <div class="activity">遅寝：<span id="lateH">0</span> 回</div>
     <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskH">0</span> 回</div>
-    <div class="record-btn" onclick="toggleForm('H')">今日の記録</div>
+    <button class="record-btn" onclick="toggleForm('H')">今日の記録</button>
     <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
       <label>日付：<input type="date" name="date" required class="today-date"></label>
       <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
       <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
-      <label>科目：
-        <select name="subject" onchange="handleSubjectOther(this, 'H')">
-          <option value="">--選択--</option>
-          <option value="国語">国語</option>
-          <option value="算数">算数</option>
-          <option value="理科">理科</option>
-          <option value="社会">社会</option>
-          <option value="その他">その他</option>
-        </select>
-        <input type="text" name="subjectOther" id="subjectOtherH" placeholder="科目を入力" style="display:none;">
-      </label>
-      <label>お手伝い：
-        <select name="task" onchange="handleOther(this, 'H')">
-          <option value="">--選択--</option>
-          <option value="皿洗い">皿洗い</option>
-          <option value="掃除機">掃除機</option>
-          <option value="洗濯物たたみ">洗濯物たたみ</option>
-          <option value="その他">その他</option>
-        </select>
-        <input type="text" name="taskOther" id="taskOtherH" placeholder="お手伝い内容を入力" style="display:none;">
-      </label>
+      <label>科目：<input type="text" name="subject"></label>
+      <label>お手伝い：<input type="text" name="task"></label>
       <button type="submit">送信</button>
     </form>
   </div>
 
   <button onclick="toggleHistory()" style="margin-top:1em;">履歴を見る</button>
   <div id="history" style="display:none; margin-top:1em;"></div>
+
   <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
 
   <div class="calendar">
@@ -105,31 +66,15 @@
     const endpoint = "https://script.google.com/macros/s/AKfycbzAi18T68Hz2qOwsP2IRy7epAQrbt3gi4rieCriu9ZNcxCQFZIlI0-fI7IM0d3LkJg/exec";
 
     function toggleForm(child) {
-      document.getElementById("form" + child).style.display = 'block';
-    }
-
-    function handleOther(select, child) {
-      const other = document.getElementById("taskOther" + child);
-      other.style.display = (select.value === "その他") ? 'block' : 'none';
-    }
-
-    function handleSubjectOther(select, child) {
-      const other = document.getElementById("subjectOther" + child);
-      other.style.display = (select.value === "その他") ? 'block' : 'none';
+      const form = document.getElementById("form" + child);
+      form.style.display = form.style.display === "block" ? "none" : "block";
     }
 
     function submitForm(event, child) {
       event.preventDefault();
       const form = event.target;
-      const formData = new FormData();
+      const formData = new FormData(form);
       formData.append("child", child);
-      formData.append("date", form.date.value);
-      formData.append("bedtime", form.bedtime.value);
-      formData.append("test", form.test.value);
-      const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
-      const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
-      formData.append("subject", subjectVal);
-      formData.append("task", taskVal);
 
       fetch(endpoint, {
         method: "POST",
@@ -139,10 +84,25 @@
       .then(msg => {
         document.getElementById("message").textContent = "記録を送信しました：" + msg;
         form.reset();
-        form.style.display = 'none';
+        form.style.display = "none";
       })
       .catch(err => alert("送信エラー：" + err));
     }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toISOString().split("T")[0];
+      document.querySelectorAll(".today-date").forEach(input => {
+        input.value = today;
+      });
+
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${hh}:${mm}`;
+      document.querySelectorAll(".now-time").forEach(input => {
+        input.value = currentTime;
+      });
+    });
 
     function toggleHistory() {
       const historyDiv = document.getElementById("history");
@@ -167,7 +127,11 @@
         const data = await res.json();
         let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>点数</th><th>科目</th><th>手伝い</th><th>金額</th></tr>`;
         for (let row of data) {
-          html += `<tr><td>${row.date}</td><td>${row.bedtime}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
+          const dateObj = new Date(row.date);
+          const sleepObj = new Date(row.bedtime);
+          const formattedDate = `${dateObj.getFullYear() % 100}/${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+          const formattedSleep = `${sleepObj.getHours()}:${String(sleepObj.getMinutes()).padStart(2, '0')}`;
+          html += `<tr><td>${formattedDate}</td><td>${formattedSleep}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
         }
         html += `</table>`;
         return html;
@@ -175,20 +139,6 @@
         return `<p style='color:red;'>${child}さんの履歴の取得に失敗しました：${err.message}</p>`;
       }
     }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      const today = new Date().toISOString().split("T")[0];
-      document.querySelectorAll(".today-date").forEach(input => {
-        input.value = today;
-      });
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      const currentTime = `${hh}:${mm}`;
-      document.querySelectorAll(".now-time").forEach(input => {
-        input.value = currentTime;
-      });
-    });
   </script>
 </body>
 </html>
