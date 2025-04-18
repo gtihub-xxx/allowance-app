@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理5</h1>
+  <h1>お小遣い管理6</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -149,6 +149,8 @@
   document.querySelectorAll(".today-date").forEach(input => {
     input.value = today;
   });
+
+  
 
   const now = new Date();
   const hh = String(now.getHours()).padStart(2, '0');
