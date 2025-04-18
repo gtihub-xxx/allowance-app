@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理</h1>
+  <h1>お小遣い管理2</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -121,12 +121,12 @@
       event.preventDefault();
       const form = event.target;
       const formData = new FormData();
+      const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
+      const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
       formData.append("child", child);
       formData.append("date", form.date.value);
       formData.append("bedtime", form.bedtime.value);
       formData.append("test", form.test.value);
-      const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
-      const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
       formData.append("subject", subjectVal);
       formData.append("task", taskVal);
 
