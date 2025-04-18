@@ -162,9 +162,9 @@
         let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>点数</th><th>科目</th><th>手伝い</th><th>金額</th></tr>`;
         for (let row of data) {
           const date = new Date(row.date);
-          const bedtime = new Date("1970-01-01T" + row.bedtime);
-          const dateStr = `${date.getFullYear() - 2000}/${date.getMonth() + 1}/${date.getDate()}`;
-          const bedtimeStr = `${bedtime.getHours()}:${String(bedtime.getMinutes()).padStart(2, '0')}`;
+          const bedtimeParts = row.bedtime.split(":").map(Number);
+          const dateStr = `${String(date.getFullYear() - 2000)}/${date.getMonth() + 1}/${date.getDate()}`;
+          const bedtimeStr = `${bedtimeParts[0]}:${String(bedtimeParts[1]).padStart(2, '0')}`;
           html += `<tr><td>${dateStr}</td><td>${bedtimeStr}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
         }
         html += `</table>`;
