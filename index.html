@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理5</h1>
+  <h1>お小遣い管理</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -102,7 +102,7 @@
   </div>
 
   <script>
-    const endpoint = "https://script.google.com/macros/s/AKfycbzAi18T68Hz2qOwsP2IRy7epAQrbt3gi4rieCriu9ZNcxCQFZIlI0-fI7IM0d3LkJg/exec";history=true&child=A
+    const endpoint = "https://script.google.com/macros/s/AKfycbzAi18T68Hz2qOwsP2IRy7epAQrbt3gi4rieCriu9ZNcxCQFZIlI0-fI7IM0d3LkJg/exec";
 
     function toggleForm(child) {
       document.getElementById("form" + child).style.display = 'block';
@@ -121,13 +121,13 @@
       event.preventDefault();
       const form = event.target;
       const formData = new FormData();
-      const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
-      const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
       formData.append("child", child);
       formData.append("date", form.date.value);
       formData.append("bedtime", form.bedtime.value);
       formData.append("test", form.test.value);
-      formData.append("subject", subjectVal);
+            const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
+      const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
+            formData.append("subject", subjectVal);
       formData.append("task", taskVal);
 
       fetch(endpoint, {
@@ -182,15 +182,21 @@ function toggleHistory() {
 }
 
 async function fetchHistory(child) {
-  const url = `https://script.google.com/macros/s/AKfycbzovJgmWdJ_NyESFFxTxNVBkTqL80Z2fWxIPMa8hcKiYrN1v6qY3mGatKpySNlJjWpm/exec?history=true&child=${child}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>点数</th><th>科目</th><th>手伝い</th><th>金額</th></tr>`;
-  for (let row of data) {
-    html += `<tr><td>${row.date}</td><td>${row.bedtime}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
+  const url = `https://script.google.com/macros/s/AKfycbzAi18T68Hz2qOwsP2IRy7epAQrbt3gi4rieCriu9ZNcxCQFZIlI0-fI7IM0d3LkJg/exec?history=true&child=\${child}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Network response was not ok");
+    const data = await res.json();
+    let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>点数</th><th>科目</th><th>手伝い</th><th>金額</th></tr>`;
+    for (let row of data) {
+      html += `<tr><td>${row.date}</td><td>${row.bedtime}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
+    }
+    html += `</table>`;
+    return html;
+  } catch (err) {
+    return `<p style='color:red;'>${child}さんの履歴の取得に失敗しました：${err.message}</p>`;
   }
-  html += `</table>`;
-  return html;
+}
 }
 </script>
 </body>
