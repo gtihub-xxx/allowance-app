@@ -124,10 +124,10 @@
       formData.append("child", child);
       formData.append("date", form.date.value);
       formData.append("bedtime", form.bedtime.value);
-      formData.append("subject", subjectVal);
       formData.append("test", form.test.value);
-            const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
+      const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
       const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
+      formData.append("subject", subjectVal);
       formData.append("task", taskVal);
 
       fetch(endpoint, {
