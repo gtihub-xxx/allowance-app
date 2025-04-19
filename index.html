@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>お小遣い管理10</h1>
+  <h1>お小遣い管理11</h1>
 
   <div class="child-box" id="childA">
     <div class="summary">A さんの今月のお小遣い：<span id="totalA">600</span> 円</div>
@@ -119,8 +119,8 @@
       formData.append("child", child);
       formData.append("date", form.date.value);
       formData.append("bedtime", form.bedtime.value);
-      formData.append("test", form.test.value);
       const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
+      formData.append("test", form.test.value);
       const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
       formData.append("subject", subjectVal);
       formData.append("task", taskVal);
@@ -134,6 +134,9 @@
         document.getElementById("message").textContent = "記録を送信しました：" + msg;
         form.reset();
         form.style.display = 'none';
+	setTimeout(updateCounts, 1000); // ← 1秒待ってから実行
+	updateCounts();
+
       })
       .catch(err => alert("送信エラー：" + err));
     }
@@ -159,23 +162,76 @@
         const res = await fetch(url);
         if (!res.ok) throw new Error("Network response was not ok");
         const data = await res.json();
-        let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>点数</th><th>科目</th><th>手伝い</th><th>金額</th></tr>`;
+        let html = `<h3>${child} さんの最新記録</h3><table border='1' cellpadding='5'><tr><th>日付</th><th>就寝</th><th>科目</th><th>点数</th><th>手伝い</th><th>増減</th><th>金額</th></tr>`;
+        let base = child === "A" ? 600 : 300;
+        let runningTotal = base;
         for (let row of data) {
+	  console.log("row.bedtime raw:", row.bedtime);
           const dateObj = new Date(row.date);
           const dateStr = `${String(dateObj.getFullYear() - 2000)}/${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-          let bedtimeStr = "";
-          if (row.bedtime && row.bedtime.includes(":")) {
-            const parts = row.bedtime.split(":").map(Number);
-            const h = parts[0];
-            const m = parts[1];
-            bedtimeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-          }
-          html += `<tr><td>${dateStr}</td><td>${bedtimeStr}</td><td>${row.test}</td><td>${row.subject}</td><td>${row.task}</td><td>${row.amount}</td></tr>`;
+	let bedtimeStr = "";
+	if (row.bedtime && typeof row.bedtime === "string") {
+	  const t = new Date("1970-01-01T" + row.bedtime.split("T")[1]);
+	  if (!isNaN(t)) {
+	    const hh = String(t.getHours()).padStart(2, '0');
+	    const mm = String(t.getMinutes()).padStart(2, '0');
+	    bedtimeStr = `${hh}:${mm}`;
+	  }
+	}
+          const amount = Number(row.amount || 0);
+          runningTotal += amount;
+          html += `<tr><td>${dateStr}</td><td>${bedtimeStr}</td><td>${row.subject || ''}</td><td>${row.test || ''}</td><td>${row.task || ''}</td><td>${amount}</td><td>${runningTotal}</td></tr>`;
         }
         html += `</table>`;
         return html;
       } catch (err) {
         return `<p style='color:red;'>${child}さんの履歴の取得に失敗しました：${err.message}</p>`;
+      }
+    }
+
+    async function updateCounts() {
+      const names = ["A", "H"];
+      const now = new Date();
+      const thisMonth = now.getMonth();
+      const thisYear = now.getFullYear();
+
+      for (let name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const filtered = data.filter(row => {
+            const d = new Date(row.date);
+            return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
+          });
+
+	const early = filtered.filter(row => {
+	  if (!row.bedtime || !row.bedtime.includes(":")) return false;
+	  const [h, m] = row.bedtime.split(":").map(Number);
+	  const hour = h + m / 60;
+	  return (name === "A" && hour < 21.0) || (name === "H" && hour < 20.5);
+	}).length;
+
+	const late = filtered.filter(row => {
+	  if (!row.bedtime || !row.bedtime.includes(":")) return false;
+	  const [h, m] = row.bedtime.split(":").map(Number);
+	  const hour = h + m / 60;
+	  return (name === "A" && hour > 21.5) || (name === "H" && hour > 21.0);
+	}).length;
+
+          const test100 = filtered.filter(row => Number(row.test) === 100).length;
+          const task = filtered.filter(row => row.task).length;
+	  const total = filtered.reduce((sum, row) => sum + Number(row.amount || 0), name === "A" ? 600 : 300);
+
+          document.getElementById(`early${name}`).textContent = early;
+          document.getElementById(`late${name}`).textContent = late;
+          document.getElementById(`test${name}`).textContent = test100;
+          document.getElementById(`task${name}`).textContent = task;
+	　document.getElementById(`total${name}`).textContent = total;
+        } catch (err) {
+          console.error(`カウント更新失敗(${name})`, err);
+        }
       }
     }
 
@@ -192,6 +248,7 @@
       document.querySelectorAll(".now-time").forEach(input => {
         input.value = currentTime;
       });
+      updateCounts();
     });
   </script>
 </body>
