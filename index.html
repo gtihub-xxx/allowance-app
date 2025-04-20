@@ -16,11 +16,13 @@
     .checkbox-row { margin-top: 0.5em; }
     .checkbox-row label { display: flex; align-items: center; gap: 0.3em; margin-bottom: 0.5em; }
     .form input[type="checkbox"] {width: auto; display: inline-block;margin-bottom: 0.5em;}
+    table { border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 0.4em; text-align: center; }
   </style>
 </head>
 <body>
 
-  <h1>お小遣い管理28</h1>
+  <h1>お小遣い管理</h1>
 
   <div class="child-box">
     <h2>A さん</h2>
@@ -28,8 +30,9 @@
     <div class="activity">早寝：<span id="earlyA">0</span> 回</div>
     <div class="activity">遅寝：<span id="lateA">0</span> 回</div>
     <div class="activity">テスト（100点）：<span id="testA">0</span> 回</div>
-    <div class="activity">お手伝い：<span id="taskA">0</span> 回</div>
+    <div class="activity">お手伝い内容：<span id="taskA">0</span> 回</div>
     <button class="record-btn" onclick="toggleForm('A')">今日の記録</button>
+
     <form class="form" id="formA" onsubmit="submitForm(event, 'A')">
       <label>日付：<input type="date" name="date" required class="today-date"></label>
       <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
@@ -76,8 +79,9 @@
     <div class="activity">早寝：<span id="earlyH">0</span> 回</div>
     <div class="activity">遅寝：<span id="lateH">0</span> 回</div>
     <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
-    <div class="activity">お手伝い：<span id="taskH">0</span> 回</div>
+    <div class="activity">お手伝い内容：<span id="taskH">0</span> 回</div>
     <button class="record-btn" onclick="toggleForm('H')">今日の記録</button>
+
     <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
     <label>日付：<input type="date" name="date"></label>
     <label>就寝時間：<input type="time" name="bedtime"></label>
@@ -111,8 +115,8 @@
 	<div class="submit-row" style="margin-top: 1em;">
 	  <button type="submit">送信</button>
 	</div>
-    </label>
-
+      </label>
+    </form>
   </div>
 
   <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
@@ -237,40 +241,48 @@
           const data = await res.json();
 
           const recent = data
-            .map(row => ({
-              ...row,
-              parsed: new Date(row["日付"])
-            }))
-            .sort((a, b) => b.parsed - a.parsed)
-            .slice(0, 10);
+            .map(row => ({ ...row, parsed: new Date(row["日付"]) }))
+            .sort((a, b) => a.parsed - b.parsed)
+            .slice(-10);
 
           const table = document.createElement("table");
           const thead = document.createElement("thead");
           thead.innerHTML = `
             <tr>
-              <th colspan="8">${name} さんの直近10日間の履歴</th>
+              <th colspan="9">${name} さんの直近10日間の履歴</th>
             </tr>
             <tr>
-              <th>日付</th><th>就寝</th><th>科目</th><th>点数</th><th>手伝い</th><th>早寝</th><th>遅寝</th><th>増減</th>
+              <th>日付</th><th>就寝</th><th>科目</th><th>点数</th><th>手伝い</th><th>早寝</th><th>遅寝</th><th>増減</th><th>累積金額</th>
             </tr>`;
           table.appendChild(thead);
 
           const tbody = document.createElement("tbody");
           for (const row of recent) {
-	    const d = row.parsed;
+            const d = row.parsed;
             const weekday = "日月火水木金土"[d.getDay()];
-            const dateStr = `${String(d.getFullYear()).slice(2)}/${d.getMonth() + 1}/${d.getDate()}（${weekday}）`;
-            const bedtime = row["就寝時間"] ? row["就寝時間"].slice(0,5) : "";
+            const dateStr = `${String(d.getFullYear()).slice(2)}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}（${weekday}）`;
+
+            let bedtime = "";
+            const raw = row["就寝時間"];
+            if (typeof raw === "string" && raw.includes("T")) {
+              const t = new Date(raw);
+              if (!isNaN(t)) bedtime = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+            } else if (typeof raw === "string" && raw.includes(":")) {
+              const [h, m] = raw.split(":");
+              bedtime = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+            }
+
             const tr = document.createElement("tr");
             tr.innerHTML = `
-              <td>${row["日付"].slice(0,10)}（${weekday}）</td>
-              <td>${row["就寝時間"] || ""}</td>
+              <td>${dateStr}</td>
+              <td>${bedtime}</td>
               <td>${row["科目"] || ""}</td>
               <td>${row["テスト点数"] || ""}</td>
-              <td>${row["お手伝い"] || ""}</td>
+              <td>${row["お手伝い内容"] || ""}</td>
               <td>${row["早寝"] === "1" ? "◯" : ""}</td>
               <td>${row["遅寝"] === "1" ? "◯" : ""}</td>
-              <td>${row["増減"] || ""}</td>`;
+              <td>${row["増減"] || ""}</td>
+              <td>${row["累積金額"] || ""}</td>`;
             tbody.appendChild(tr);
           }
           table.appendChild(tbody);
