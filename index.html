@@ -83,8 +83,8 @@
     <button class="record-btn" onclick="toggleForm('H')">今日の記録</button>
 
     <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
-    <label>日付：<input type="date" name="date"></label>
-    <label>就寝時間：<input type="time" name="bedtime"></label>
+    <label>日付：<input type="date" name="date" required class="today-date"></label>
+    <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
     <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
     <label>科目：
       <select name="subject">
