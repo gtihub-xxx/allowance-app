@@ -13,10 +13,13 @@
     .record-btn { margin-top: 1em; display: inline-block; padding: 0.5em 1em; background: #007bff; color: #fff; text-decoration: none; border-radius: 4px; cursor: pointer; }
     .form { display: none; border: 1px solid #aaa; padding: 1em; margin-top: 1em; background: #f9f9f9; }
     .form input, .form select { margin-bottom: 0.5em; display: block; width: 100%; padding: 0.4em; }
+    .checkbox-group { display: flex; gap: 1em; align-items: center; margin-top: 1em; }
+    .checkbox-group label { display: flex; align-items: center; gap: 0.5em; }
   </style>
 </head>
 <body>
-  <h1>お小遣い管理20</h1>
+
+  <h1>お小遣い管理25</h1>
 
   <div class="child-box">
     <h2>A さん</h2>
@@ -50,6 +53,8 @@
           <option value="その他">その他</option>
         </select>
         <input type="text" name="taskOther" id="taskOtherA" placeholder="お手伝い内容を入力" style="display:none;">
+      <label><input type="checkbox" name="early"> 早寝（+10円）</label>
+      <label><input type="checkbox" name="late"> 遅寝（-10円）</label>
       </label>
       <button type="submit">送信</button>
     </form>
@@ -63,33 +68,37 @@
     <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskH">0</span> 回</div>
     <button class="record-btn" onclick="toggleForm('H')">今日の記録</button>
-    <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
-      <label>日付：<input type="date" name="date" required class="today-date"></label>
-      <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
-      <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
-      <label>科目：
-        <select name="subject" onchange="handleSubjectOther(this, 'H')">
-          <option value="">--選択--</option>
-          <option value="国語">国語</option>
-          <option value="算数">算数</option>
-          <option value="理科">理科</option>
-          <option value="社会">社会</option>
-          <option value="その他">その他</option>
-        </select>
-        <input type="text" name="subjectOther" id="subjectOtherH" placeholder="科目を入力" style="display:none;">
-      </label>
-      <label>お手伝い内容：
-        <select name="task" onchange="handleTaskOther(this, 'H')">
-          <option value="">--選択--</option>
-          <option value="靴ならべ">靴ならべ</option>
-          <option value="箸並べ">箸並べ</option>
-          <option value="掃除">掃除</option>
-          <option value="その他">その他</option>
-        </select>
-        <input type="text" name="taskOther" id="taskOtherH" placeholder="お手伝い内容を入力" style="display:none;">
-      </label>
-      <button type="submit">送信</button>
-    </form>
+
+  <div class="form">
+    <label>日付：<input type="date" name="date"></label>
+    <label>就寝時間：<input type="time" name="bedtime"></label>
+    <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
+    <label>科目：
+      <select name="subject">
+        <option value="">--選択--</option>
+        <option value="国語">国語</option>
+        <option value="算数">算数</option>
+        <option value="理科">理科</option>
+        <option value="社会">社会</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+    <label>お手伝い内容：
+      <select name="task">
+        <option value="">--選択--</option>
+        <option value="靴ならべ">靴ならべ</option>
+        <option value="箸並べ">箸並べ</option>
+        <option value="掃除">掃除</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+
+    <div class="checkbox-group">
+      <label><input type="checkbox" name="early">早寝（+10円）</label>
+      <label><input type="checkbox" name="late">遅寝（-10円）</label>
+    </div>
+
+    <button type="submit">送信</button>
   </div>
 
   <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
@@ -126,6 +135,8 @@
       formData.append("test", form.test.value);
       formData.append("subject", subjectVal);
       formData.append("task", taskVal);
+      formData.append("early", form.early.checked);
+      formData.append("late", form.late.checked);
 
       fetch(endpoint, {
         method: "POST",
@@ -139,52 +150,6 @@
         setTimeout(() => updateCounts(), 1000);
       })
       .catch(err => alert("送信エラー：" + err));
-    }
-
-    function toggleHistory() {
-      const historyDiv = document.getElementById("history");
-      if (historyDiv.style.display === "none") {
-        historyDiv.innerHTML = "読み込み中...";
-        historyDiv.style.display = "block";
-        fetchHistory("A").then(aHtml => {
-          fetchHistory("H").then(hHtml => {
-            historyDiv.innerHTML = aHtml + hHtml;
-          });
-        });
-      } else {
-        historyDiv.style.display = "none";
-      }
-    }
-
-    function fetchHistory(child) {
-      const url = `${endpoint}?history=true&child=${child}`;
-      return fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          let html = `<h3>${child} さんの履歴</h3><table border='1'><tr><th>日付</th><th>就寝</th><th>科目</th><th>点数</th><th>手伝い</th><th>増減</th><th>金額</th></tr>`;
-          let runningTotal = child === "A" ? 600 : 300;
-          for (let row of data) {
-            const date = new Date(row["日付"]);
-            const dateStr = `${date.getFullYear() - 2000}/${date.getMonth() + 1}/${date.getDate()}`;
-
-            let bedtimeStr = "";
-            if (row["就寝時間"] && typeof row["就寝時間"] === "string") {
-              const t = new Date("1970-01-01T" + row["就寝時間"].split("T")[1]);
-              if (!isNaN(t)) {
-                const hh = String(t.getHours()).padStart(2, '0');
-                const mm = String(t.getMinutes()).padStart(2, '0');
-                bedtimeStr = `${hh}:${mm}`;
-              }
-            }
-
-            const amount = Number(row["増減"] || 0);
-            runningTotal += amount;
-            html += `<tr><td>${dateStr}</td><td>${bedtimeStr}</td><td>${row["科目"]}</td><td>${row["テスト点数"]}</td><td>${row["お手伝い内容"]}</td><td>${row["増減"]}</td><td>${runningTotal}</td></tr>`;
-          }
-          html += `</table>`;
-          return html;
-        })
-        .catch(err => `<p style='color:red;'>${child}さんの履歴の取得に失敗しました：${err.message}</p>`);
     }
 
     async function updateCounts() {
@@ -205,45 +170,19 @@
             return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
           });
 
-	const getHourFromTimeString = (timeStr) => {
-	  try {
-	    const date = new Date(timeStr);
-	    const hours = date.getHours();
-	    const minutes = date.getMinutes();
-	    return hours + minutes / 60;
-	  } catch {
-	    return null;
-	  }
-	};
-
-	const early = filtered.filter(row => {
-	  const hour = getHourFromTimeString(row["就寝時間"]);
-	  if (hour === null) return false;
-	  return (name === "A" && hour < 21.0) || (name === "H" && hour < 20.5);
-	}).length;
-
-	const late = filtered.filter(row => {
-	  const hour = getHourFromTimeString(row["就寝時間"]);
-	  if (hour === null) return false;
-	  return (name === "A" && hour > 21.5) || (name === "H" && hour > 21.0);
-	}).length;
-
+          const early = filtered.filter(row => row["早寝"] === true || row["早寝"] === "true").length;
+          const late = filtered.filter(row => row["遅寝"] === true || row["遅寝"] === "true").length;
           const test100 = filtered.filter(row => Number(row["テスト点数"]) === 100).length;
           const task = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "").length;
 
-	const total = filtered.reduce((sum, row) => {
-	  let delta = 0;
-	  if (Number(row["テスト点数"]) === 100) delta += 100;
-	  if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
-
-	  const hour = getHourFromTimeString(row["就寝時間"]);
-	  if (hour !== null) {
-	    if ((name === "A" && hour < 21.0) || (name === "H" && hour < 20.5)) delta += 10;
-	    else if ((name === "A" && hour > 21.5) || (name === "H" && hour > 21.0)) delta -= 10;
-	  }
-
-	  return sum + delta;
-	}, name === "A" ? 600 : 300);
+          const total = filtered.reduce((sum, row) => {
+            let delta = 0;
+            if (Number(row["テスト点数"]) === 100) delta += 100;
+            if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
+            if (row["早寝"] === true || row["早寝"] === "true") delta += 10;
+            if (row["遅寝"] === true || row["遅寝"] === "true") delta -= 10;
+            return sum + delta;
+          }, name === "A" ? 600 : 300);
 
           document.getElementById(`early${name}`).textContent = early;
           document.getElementById(`late${name}`).textContent = late;
@@ -255,16 +194,6 @@
         }
       }
     }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      const today = new Date().toISOString().split("T")[0];
-      document.querySelectorAll(".today-date").forEach(input => input.value = today);
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      document.querySelectorAll(".now-time").forEach(input => input.value = `${hh}:${mm}`);
-      updateCounts();
-    });
   </script>
 </body>
 </html>
