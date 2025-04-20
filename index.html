@@ -13,13 +13,14 @@
     .record-btn { margin-top: 1em; display: inline-block; padding: 0.5em 1em; background: #007bff; color: #fff; text-decoration: none; border-radius: 4px; cursor: pointer; }
     .form { display: none; border: 1px solid #aaa; padding: 1em; margin-top: 1em; background: #f9f9f9; }
     .form input, .form select { margin-bottom: 0.5em; display: block; width: 100%; padding: 0.4em; }
-    .checkbox-group { display: flex; gap: 1em; align-items: center; margin-top: 1em; }
-    .checkbox-group label { display: flex; align-items: center; gap: 0.5em; }
+    .checkbox-row { margin-top: 0.5em; }
+    .checkbox-row label { display: flex; align-items: center; gap: 0.3em; margin-bottom: 0.5em; }
+    .form input[type="checkbox"] {width: auto; display: inline-block;margin-bottom: 0.5em;}
   </style>
 </head>
 <body>
 
-  <h1>お小遣い管理25</h1>
+  <h1>お小遣い管理28</h1>
 
   <div class="child-box">
     <h2>A さん</h2>
@@ -53,11 +54,20 @@
           <option value="その他">その他</option>
         </select>
         <input type="text" name="taskOther" id="taskOtherA" placeholder="お手伝い内容を入力" style="display:none;">
-      <label><input type="checkbox" name="early"> 早寝（+10円）</label>
-      <label><input type="checkbox" name="late"> 遅寝（-10円）</label>
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="early">早寝（+10円）</label>
+	</div>
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="late">遅寝（-10円）</label>
+	</div>
+
+	<div class="submit-row" style="margin-top: 1em;">
+	  <button type="submit">送信</button>
+	</div>
       </label>
-      <button type="submit">送信</button>
     </form>
+
+
   </div>
 
   <div class="child-box">
@@ -68,8 +78,7 @@
     <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
     <div class="activity">お手伝い：<span id="taskH">0</span> 回</div>
     <button class="record-btn" onclick="toggleForm('H')">今日の記録</button>
-
-  <div class="form">
+    <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
     <label>日付：<input type="date" name="date"></label>
     <label>就寝時間：<input type="time" name="bedtime"></label>
     <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
@@ -91,14 +100,19 @@
         <option value="掃除">掃除</option>
         <option value="その他">その他</option>
       </select>
+        <input type="text" name="taskOther" id="taskOtherA" placeholder="お手伝い内容を入力" style="display:none;">
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="early">早寝（+10円）</label>
+	</div>
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="late">遅寝（-10円）</label>
+	</div>
+
+	<div class="submit-row" style="margin-top: 1em;">
+	  <button type="submit">送信</button>
+	</div>
     </label>
 
-    <div class="checkbox-group">
-      <label><input type="checkbox" name="early">早寝（+10円）</label>
-      <label><input type="checkbox" name="late">遅寝（-10円）</label>
-    </div>
-
-    <button type="submit">送信</button>
   </div>
 
   <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
@@ -170,8 +184,8 @@
             return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
           });
 
-          const early = filtered.filter(row => row["早寝"] === true || row["早寝"] === "true").length;
-          const late = filtered.filter(row => row["遅寝"] === true || row["遅寝"] === "true").length;
+          const early = filtered.filter(row => row["早寝"] === 1 || row["早寝"] === "1").length;
+          const late = filtered.filter(row => row["遅寝"] === 1 || row["遅寝"] === "1").length;
           const test100 = filtered.filter(row => Number(row["テスト点数"]) === 100).length;
           const task = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "").length;
 
@@ -179,8 +193,8 @@
             let delta = 0;
             if (Number(row["テスト点数"]) === 100) delta += 100;
             if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
-            if (row["早寝"] === true || row["早寝"] === "true") delta += 10;
-            if (row["遅寝"] === true || row["遅寝"] === "true") delta -= 10;
+            if (row["早寝"] === 1 || row["早寝"] === "1") delta += 10;
+            if (row["遅寝"] === 1 || row["遅寝"] === "1") delta -= 10;
             return sum + delta;
           }, name === "A" ? 600 : 300);
 
@@ -191,6 +205,78 @@
           document.getElementById(`total${name}`).textContent = total;
         } catch (err) {
           console.error(`カウント更新失敗(${name})`, err);
+        }
+      }
+    }
+	window.addEventListener("DOMContentLoaded", () => {
+	const now = new Date();
+	const yyyy = now.getFullYear();
+	const mm = String(now.getMonth() + 1).padStart(2, '0');
+	const dd = String(now.getDate()).padStart(2, '0');
+	const dateStr = `${yyyy}-${mm}-${dd}`;
+	const hh = String(now.getHours()).padStart(2, '0');
+	const mi = String(now.getMinutes()).padStart(2, '0');
+	const timeStr = `${hh}:${mi}`;
+
+	document.querySelectorAll(".today-date").forEach(el => el.value = dateStr);
+	document.querySelectorAll(".now-time").forEach(el => el.value = timeStr);
+
+	updateCounts();
+　　});
+
+    async function toggleHistory() {
+      const historyDiv = document.getElementById("history");
+      historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+      if (historyDiv.innerHTML) return;
+
+      const names = ["A", "H"];
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const recent = data
+            .map(row => ({
+              ...row,
+              parsed: new Date(row["日付"])
+            }))
+            .sort((a, b) => b.parsed - a.parsed)
+            .slice(0, 10);
+
+          const table = document.createElement("table");
+          const thead = document.createElement("thead");
+          thead.innerHTML = `
+            <tr>
+              <th colspan="8">${name} さんの直近10日間の履歴</th>
+            </tr>
+            <tr>
+              <th>日付</th><th>就寝</th><th>科目</th><th>点数</th><th>手伝い</th><th>早寝</th><th>遅寝</th><th>増減</th>
+            </tr>`;
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          for (const row of recent) {
+	    const d = row.parsed;
+            const weekday = "日月火水木金土"[d.getDay()];
+            const dateStr = `${String(d.getFullYear()).slice(2)}/${d.getMonth() + 1}/${d.getDate()}（${weekday}）`;
+            const bedtime = row["就寝時間"] ? row["就寝時間"].slice(0,5) : "";
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${row["日付"].slice(0,10)}（${weekday}）</td>
+              <td>${row["就寝時間"] || ""}</td>
+              <td>${row["科目"] || ""}</td>
+              <td>${row["テスト点数"] || ""}</td>
+              <td>${row["お手伝い"] || ""}</td>
+              <td>${row["早寝"] === "1" ? "◯" : ""}</td>
+              <td>${row["遅寝"] === "1" ? "◯" : ""}</td>
+              <td>${row["増減"] || ""}</td>`;
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          historyDiv.appendChild(table);
+        } catch (err) {
+          historyDiv.innerHTML += `<p>${name} さんの履歴取得に失敗しました。</p>`;
         }
       }
     }
