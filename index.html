@@ -187,50 +187,73 @@
         .catch(err => `<p style='color:red;'>${child}さんの履歴の取得に失敗しました：${err.message}</p>`);
     }
 
-    function updateCounts() {
+    async function updateCounts() {
+      console.log("updateCounts 呼び出し");
       const names = ["A", "H"];
       const now = new Date();
       const thisMonth = now.getMonth();
       const thisYear = now.getFullYear();
 
-      names.forEach(name => {
-        fetch(`${endpoint}?history=true&child=${name}`)
-          .then(res => res.json())
-          .then(data => {
-            const filtered = data.filter(row => {
-              const d = new Date(row["日付"]);
-              return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
-            });
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
 
-            const early = filtered.filter(row => {
-              const t = row["就寝時間"];
-              if (!t || !t.includes(":")) return false;
-              const [h, m] = t.split(":" ).map(Number);
-              const hour = h + m / 60;
-              return (name === "A" && hour < 21.0) || (name === "H" && hour < 20.5);
-            }).length;
+          const filtered = data.filter(row => {
+            const d = new Date(row["日付"]);
+            return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
+          });
 
-            const late = filtered.filter(row => {
-              const t = row["就寝時間"];
-              if (!t || !t.includes(":")) return false;
-              const [h, m] = t.split(":" ).map(Number);
-              const hour = h + m / 60;
-              return (name === "A" && hour > 21.5) || (name === "H" && hour > 21.0);
-            }).length;
+	const getHourFromTimeString = (timeStr) => {
+	  try {
+	    const date = new Date(timeStr);
+	    const hours = date.getHours();
+	    const minutes = date.getMinutes();
+	    return hours + minutes / 60;
+	  } catch {
+	    return null;
+	  }
+	};
 
-            const test100 = filtered.filter(row => Number(row["テスト点数"]) === 100).length;
-            const task = filtered.filter(row => row["お手伝い内容"]).length;
+	const early = filtered.filter(row => {
+	  const hour = getHourFromTimeString(row["就寝時間"]);
+	  if (hour === null) return false;
+	  return (name === "A" && hour < 21.0) || (name === "H" && hour < 20.5);
+	}).length;
 
-            const total = filtered.reduce((sum, row) => sum + Number(row["増減"] || 0), name === "A" ? 600 : 300);
+	const late = filtered.filter(row => {
+	  const hour = getHourFromTimeString(row["就寝時間"]);
+	  if (hour === null) return false;
+	  return (name === "A" && hour > 21.5) || (name === "H" && hour > 21.0);
+	}).length;
 
-            document.getElementById(`early${name}`).textContent = early;
-            document.getElementById(`late${name}`).textContent = late;
-            document.getElementById(`test${name}`).textContent = test100;
-            document.getElementById(`task${name}`).textContent = task;
-            document.getElementById(`total${name}`).textContent = total;
-          })
-          .catch(err => console.error("カウント取得失敗", err));
-      });
+          const test100 = filtered.filter(row => Number(row["テスト点数"]) === 100).length;
+          const task = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "").length;
+
+	const total = filtered.reduce((sum, row) => {
+	  let delta = 0;
+	  if (Number(row["テスト点数"]) === 100) delta += 100;
+	  if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
+
+	  const hour = getHourFromTimeString(row["就寝時間"]);
+	  if (hour !== null) {
+	    if ((name === "A" && hour < 21.0) || (name === "H" && hour < 20.5)) delta += 10;
+	    else if ((name === "A" && hour > 21.5) || (name === "H" && hour > 21.0)) delta -= 10;
+	  }
+
+	  return sum + delta;
+	}, name === "A" ? 600 : 300);
+
+          document.getElementById(`early${name}`).textContent = early;
+          document.getElementById(`late${name}`).textContent = late;
+          document.getElementById(`test${name}`).textContent = test100;
+          document.getElementById(`task${name}`).textContent = task;
+          document.getElementById(`total${name}`).textContent = total;
+        } catch (err) {
+          console.error(`カウント更新失敗(${name})`, err);
+        }
+      }
     }
 
     window.addEventListener("DOMContentLoaded", () => {
