@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お小遣い管理</title>
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    .child-box { border: 1px solid #ccc; padding: 1em; margin-bottom: 1em; }
+    .summary { font-size: 1.2em; margin-bottom: 0.5em; }
+    .activity { margin-bottom: 0.3em; }
+    .calendar { margin-top: 1em; }
+    .record-btn { margin-top: 1em; display: inline-block; padding: 0.5em 1em; background: #007bff; color: #fff; text-decoration: none; border-radius: 4px; cursor: pointer; }
+    .form { display: none; border: 1px solid #aaa; padding: 1em; margin-top: 1em; background: #f9f9f9; }
+    .form input, .form select { margin-bottom: 0.5em; display: block; width: 100%; padding: 0.4em; }
+    .checkbox-row { margin-top: 0.5em; }
+    .checkbox-row label { display: flex; align-items: center; gap: 0.3em; margin-bottom: 0.5em; }
+    .form input[type="checkbox"] {width: auto; display: inline-block;margin-bottom: 0.5em;}
+    table { border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 0.4em; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h1>お小遣い管理</h1>
+
+  <div class="child-box">
+    <h2>A さん</h2>
+    <div class="summary">今月のお小遣い：<span id="totalA">600</span> 円</div>
+    <div class="activity">早寝：<span id="earlyA">0</span> 回</div>
+    <div class="activity">遅寝：<span id="lateA">0</span> 回</div>
+    <div class="activity">テスト（100点）：<span id="testA">0</span> 回</div>
+    <div class="activity">お手伝い内容：<span id="taskA">0</span> 回</div>
+    <button class="record-btn" onclick="toggleForm('A')">今日の記録</button>
+
+    <form class="form" id="formA" onsubmit="submitForm(event, 'A')">
+      <label>日付：<input type="date" name="date" required class="today-date"></label>
+      <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
+      <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
+      <label>科目：
+        <select name="subject" onchange="handleSubjectOther(this, 'A')">
+          <option value="">--選択--</option>
+          <option value="国語">国語</option>
+          <option value="算数">算数</option>
+          <option value="理科">理科</option>
+          <option value="社会">社会</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" name="subjectOther" id="subjectOtherA" placeholder="科目を入力" style="display:none;">
+      </label>
+      <label>お手伝い内容：
+        <select name="task" onchange="handleTaskOther(this, 'A')">
+          <option value="">--選択--</option>
+          <option value="靴ならべ">靴ならべ</option>
+          <option value="箸並べ">箸並べ</option>
+          <option value="掃除">掃除</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" name="taskOther" id="taskOtherA" placeholder="お手伝い内容を入力" style="display:none;">
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="early">早寝（+10円）</label>
+	</div>
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="late">遅寝（-10円）</label>
+	</div>
+
+	<div class="submit-row" style="margin-top: 1em;">
+	  <button type="submit">送信</button>
+	</div>
+      </label>
+    </form>
+
+
+  </div>
+
+  <div class="child-box">
+    <h2>H さん</h2>
+    <div class="summary">今月のお小遣い：<span id="totalH">300</span> 円</div>
+    <div class="activity">早寝：<span id="earlyH">0</span> 回</div>
+    <div class="activity">遅寝：<span id="lateH">0</span> 回</div>
+    <div class="activity">テスト（100点）：<span id="testH">0</span> 回</div>
+    <div class="activity">お手伝い内容：<span id="taskH">0</span> 回</div>
+    <button class="record-btn" onclick="toggleForm('H')">今日の記録</button>
+
+    <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
+    <label>日付：<input type="date" name="date" required class="today-date"></label>
+    <label>就寝時間：<input type="time" name="bedtime" class="now-time"></label>
+    <label>テスト点数：<input type="number" name="test" min="0" max="100"></label>
+    <label>科目：
+      <select name="subject">
+        <option value="">--選択--</option>
+        <option value="国語">国語</option>
+        <option value="算数">算数</option>
+        <option value="理科">理科</option>
+        <option value="社会">社会</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+    <label>お手伝い内容：
+      <select name="task">
+        <option value="">--選択--</option>
+        <option value="靴ならべ">靴ならべ</option>
+        <option value="箸並べ">箸並べ</option>
+        <option value="掃除">掃除</option>
+        <option value="その他">その他</option>
+      </select>
+        <input type="text" name="taskOther" id="taskOtherA" placeholder="お手伝い内容を入力" style="display:none;">
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="early">早寝（+10円）</label>
+	</div>
+	<div class="checkbox-row">
+	  <label><input type="checkbox" name="late">遅寝（-10円）</label>
+	</div>
+
+	<div class="submit-row" style="margin-top: 1em;">
+	  <button type="submit">送信</button>
+	</div>
+      </label>
+    </form>
+  </div>
+
+  <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
+  <button onclick="toggleHistory()" style="margin-top:1em;">履歴を見る</button>
+  <button onclick="showLastMonth()" style="margin-top:1em; margin-left:0.5em;">先月の結果</button>
+  <div id="history" style="display:none; margin-top:1em;"></div>
+  <div id="lastMonth" style="display:none; margin-top:1em;"></div>
+
+  <!-- 元データ（スプレッドシート）へのリンクを追加 -->
+  <div style="margin-top:2em; text-align:right;">
+    <a href="https://docs.google.com/spreadsheets/d/1TYzfK0qGEYS-_njaXugkHO8knr1dJTOqPU_4qrDva_s/edit?usp=sharing" target="_blank" rel="noopener noreferrer">
+      元データ（スプレッドシート）を見る
+    </a>
+  </div>
+  <script>
+    const endpoint = "https://script.google.com/macros/s/AKfycbyjBZGHrGGLgTvnS1GYbr_SYd-1F0QISJFMiv5JgeMexQSQDrlHnoQS3-llIPOaE2EY/exec";
+
+    function handleSubjectOther(select, child) {
+      const input = document.getElementById(`subjectOther${child}`);
+      input.style.display = select.value === "その他" ? "block" : "none";
+    }
+
+    function handleTaskOther(select, child) {
+      const input = document.getElementById(`taskOther${child}`);
+      input.style.display = select.value === "その他" ? "block" : "none";
+    }
+
+    function toggleForm(child) {
+      const form = document.getElementById("form" + child);
+      form.style.display = form.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function submitForm(event, child) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData();
+      formData.append("child", child);
+      formData.append("date", form.date.value);
+      formData.append("bedtime", form.bedtime.value);
+      const subjectVal = form.subject.value === "その他" ? form.subjectOther.value : form.subject.value;
+      const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
+      formData.append("test", form.test.value);
+      formData.append("subject", subjectVal);
+      formData.append("task", taskVal);
+      formData.append("early", form.early.checked);
+      formData.append("late", form.late.checked);
+
+      fetch(endpoint, {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.text())
+      .then(msg => {
+        document.getElementById("message").textContent = "記録を送信しました：" + msg;
+        form.reset();
+        form.style.display = 'none';
+        setTimeout(() => updateCounts(), 1000);
+      })
+      .catch(err => alert("送信エラー：" + err));
+    }
+
+    async function updateCounts() {
+      console.log("updateCounts 呼び出し");
+      const names = ["A", "H"];
+      const now = new Date();
+      const thisMonth = now.getMonth();
+      const thisYear = now.getFullYear();
+
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const filtered = data.filter(row => {
+            const d = new Date(row["日付"]);
+            return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
+          });
+
+          const early = filtered.filter(row => row["早寝"] === 1 || row["早寝"] === "1").length;
+          const late = filtered.filter(row => row["遅寝"] === 1 || row["遅寝"] === "1").length;
+          const test100 = filtered.filter(row => Number(row["テスト点数"]) === 100).length;
+          const task = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "").length;
+
+          const total = filtered.reduce((sum, row) => {
+            let delta = 0;
+            if (Number(row["テスト点数"]) === 100) delta += 100;
+            if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
+            if (row["早寝"] === 1 || row["早寝"] === "1") delta += 10;
+            if (row["遅寝"] === 1 || row["遅寝"] === "1") delta -= 10;
+            return sum + delta;
+          }, name === "A" ? 600 : 300);
+
+          document.getElementById(`early${name}`).textContent = early;
+          document.getElementById(`late${name}`).textContent = late;
+          document.getElementById(`test${name}`).textContent = test100;
+          document.getElementById(`task${name}`).textContent = task;
+          document.getElementById(`total${name}`).textContent = total;
+        } catch (err) {
+          console.error(`カウント更新失敗(${name})`, err);
+        }
+      }
+    }
+	window.addEventListener("DOMContentLoaded", () => {
+	const now = new Date();
+	const yyyy = now.getFullYear();
+	const mm = String(now.getMonth() + 1).padStart(2, '0');
+	const dd = String(now.getDate()).padStart(2, '0');
+	const dateStr = `${yyyy}-${mm}-${dd}`;
+	const hh = String(now.getHours()).padStart(2, '0');
+	const mi = String(now.getMinutes()).padStart(2, '0');
+	const timeStr = `${hh}:${mi}`;
+
+	document.querySelectorAll(".today-date").forEach(el => el.value = dateStr);
+	document.querySelectorAll(".now-time").forEach(el => el.value = timeStr);
+
+	updateCounts();
+　　});
+
+    async function toggleHistory() {
+      const historyDiv = document.getElementById("history");
+      historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+      if (historyDiv.innerHTML) return;
+
+      const names = ["A", "H"];
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const recent = data
+            .map(row => ({ ...row, parsed: new Date(row["日付"]) }))
+            .sort((a, b) => a.parsed - b.parsed)
+            .slice(-10);
+
+          const table = document.createElement("table");
+          const thead = document.createElement("thead");
+          thead.innerHTML = `
+            <tr>
+              <th colspan="9">${name} さんの直近10日間の履歴</th>
+            </tr>
+            <tr>
+              <th>日付</th><th>就寝</th><th>科目</th><th>点数</th><th>手伝い</th><th>早寝</th><th>遅寝</th><th>増減</th><th>累積金額</th>
+            </tr>`;
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          for (const row of recent) {
+            const d = row.parsed;
+            const weekday = "日月火水木金土"[d.getDay()];
+	　　const dateStr = `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}(${weekday})`;
+
+
+            let bedtime = "";
+            const raw = row["就寝時間"];
+            if (typeof raw === "string" && raw.includes("T")) {
+              const t = new Date(raw);
+              if (!isNaN(t)) bedtime = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+            } else if (typeof raw === "string" && raw.includes(":")) {
+              const [h, m] = raw.split(":");
+              bedtime = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+            }
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${dateStr}</td>
+              <td>${bedtime}</td>
+              <td>${row["科目"] || ""}</td>
+              <td>${row["テスト点数"] || ""}</td>
+              <td>${row["お手伝い内容"] || ""}</td>
+              <td>${row["早寝"] == "1" ? "◯" : ""}</td>
+              <td>${row["遅寝"] == "1" ? "◯" : ""}</td>
+              <td>${row["増減"] || ""}</td>
+              <td>${row["累積金額"] || ""}</td>`;
+            tbody.appendChild(tr);
+          }
+          table.appendChild(tbody);
+          historyDiv.appendChild(table);
+        } catch (err) {
+          historyDiv.innerHTML += `<p>${name} さんの履歴取得に失敗しました。</p>`;
+        }
+      }
+    }
+
+    async function showLastMonth() {
+      const lastMonthDiv = document.getElementById("lastMonth");
+      // トグル表示
+      lastMonthDiv.style.display = lastMonthDiv.style.display === "none" ? "block" : "none";
+      if (lastMonthDiv.innerHTML) return;
+
+      const names = ["A", "H"];
+      const now = new Date();
+      let year = now.getFullYear();
+      let month = now.getMonth() - 1;
+      if (month < 0) {
+        month = 11;
+        year--;
+      }
+
+      let html = "";
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const filtered = data.filter(row => {
+            const d = new Date(row["日付"]);
+            return d.getFullYear() === year && d.getMonth() === month;
+          });
+
+          const early = filtered.filter(row => row["早寝"] === 1 || row["早寝"] === "1").length;
+          const late = filtered.filter(row => row["遅寝"] === 1 || row["遅寝"] === "1").length;
+          const test100Rows = filtered.filter(row => Number(row["テスト点数"]) === 100);
+          const test100 = test100Rows.length;
+          // テスト内訳
+          const testSubjects = {};
+          test100Rows.forEach(row => {
+            const subj = row["科目"] || "（未入力）";
+            testSubjects[subj] = (testSubjects[subj] || 0) + 1;
+          });
+
+          const taskRows = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "");
+          const task = taskRows.length;
+          // お手伝い内訳
+          const taskDetails = {};
+          taskRows.forEach(row => {
+            const taskName = row["お手伝い内容"] || "（未入力）";
+            taskDetails[taskName] = (taskDetails[taskName] || 0) + 1;
+          });
+
+          const total = filtered.reduce((sum, row) => {
+            let delta = 0;
+            if (Number(row["テスト点数"]) === 100) delta += 100;
+            if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
+            if (row["早寝"] === 1 || row["早寝"] === "1") delta += 10;
+            if (row["遅寝"] === 1 || row["遅寝"] === "1") delta -= 10;
+            return sum + delta;
+          }, name === "A" ? 600 : 300);
+
+          // テスト内訳HTML
+          let testDetailHtml = "";
+          if (test100 > 0) {
+            testDetailHtml = "<ul style='margin:0;padding-left:1.2em;'>";
+            for (const subj in testSubjects) {
+              testDetailHtml += `<li>${subj}: ${testSubjects[subj]} 回</li>`;
+            }
+            testDetailHtml += "</ul>";
+          }
+
+          // お手伝い内訳HTML
+          let taskDetailHtml = "";
+          if (task > 0) {
+            taskDetailHtml = "<ul style='margin:0;padding-left:1.2em;'>";
+            for (const t in taskDetails) {
+              taskDetailHtml += `<li>${t}: ${taskDetails[t]} 回</li>`;
+            }
+            taskDetailHtml += "</ul>";
+          }
+
+          html += `
+            <table>
+              <thead>
+                <tr><th colspan="2">${name} さんの先月の結果</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>お小遣い</td><td>${total} 円</td></tr>
+                <tr><td>早寝</td><td>${early} 回</td></tr>
+                <tr><td>遅寝</td><td>${late} 回</td></tr>
+                <tr><td>テスト（100点）</td><td>${test100} 回${testDetailHtml}</td></tr>
+                <tr><td>お手伝い内容</td><td>${task} 回${taskDetailHtml}</td></tr>
+              </tbody>
+            </table>
+          `;
+        } catch (err) {
+          html += `<p>${name} さんの先月データ取得に失敗しました。</p>`;
+        }
+      }
+      lastMonthDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
