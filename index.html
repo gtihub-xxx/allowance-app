@@ -121,7 +121,9 @@
 
   <div id="message" style="margin-top: 1em; font-weight: bold; color: green;"></div>
   <button onclick="toggleHistory()" style="margin-top:1em;">履歴を見る</button>
+  <button onclick="showLastMonth()" style="margin-top:1em; margin-left:0.5em;">先月の結果</button>
   <div id="history" style="display:none; margin-top:1em;"></div>
+  <div id="lastMonth" style="display:none; margin-top:1em;"></div>
 
   <script>
     const endpoint = "https://script.google.com/macros/s/AKfycbyjBZGHrGGLgTvnS1GYbr_SYd-1F0QISJFMiv5JgeMexQSQDrlHnoQS3-llIPOaE2EY/exec";
@@ -292,6 +294,103 @@
           historyDiv.innerHTML += `<p>${name} さんの履歴取得に失敗しました。</p>`;
         }
       }
+    }
+
+    async function showLastMonth() {
+      const lastMonthDiv = document.getElementById("lastMonth");
+      // トグル表示
+      lastMonthDiv.style.display = lastMonthDiv.style.display === "none" ? "block" : "none";
+      if (lastMonthDiv.innerHTML) return;
+
+      const names = ["A", "H"];
+      const now = new Date();
+      let year = now.getFullYear();
+      let month = now.getMonth() - 1;
+      if (month < 0) {
+        month = 11;
+        year--;
+      }
+
+      let html = "";
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const filtered = data.filter(row => {
+            const d = new Date(row["日付"]);
+            return d.getFullYear() === year && d.getMonth() === month;
+          });
+
+          const early = filtered.filter(row => row["早寝"] === 1 || row["早寝"] === "1").length;
+          const late = filtered.filter(row => row["遅寝"] === 1 || row["遅寝"] === "1").length;
+          const test100Rows = filtered.filter(row => Number(row["テスト点数"]) === 100);
+          const test100 = test100Rows.length;
+          // テスト内訳
+          const testSubjects = {};
+          test100Rows.forEach(row => {
+            const subj = row["科目"] || "（未入力）";
+            testSubjects[subj] = (testSubjects[subj] || 0) + 1;
+          });
+
+          const taskRows = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "");
+          const task = taskRows.length;
+          // お手伝い内訳
+          const taskDetails = {};
+          taskRows.forEach(row => {
+            const taskName = row["お手伝い内容"] || "（未入力）";
+            taskDetails[taskName] = (taskDetails[taskName] || 0) + 1;
+          });
+
+          const total = filtered.reduce((sum, row) => {
+            let delta = 0;
+            if (Number(row["テスト点数"]) === 100) delta += 100;
+            if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
+            if (row["早寝"] === 1 || row["早寝"] === "1") delta += 10;
+            if (row["遅寝"] === 1 || row["遅寝"] === "1") delta -= 10;
+            return sum + delta;
+          }, name === "A" ? 600 : 300);
+
+          // テスト内訳HTML
+          let testDetailHtml = "";
+          if (test100 > 0) {
+            testDetailHtml = "<ul style='margin:0;padding-left:1.2em;'>";
+            for (const subj in testSubjects) {
+              testDetailHtml += `<li>${subj}: ${testSubjects[subj]} 回</li>`;
+            }
+            testDetailHtml += "</ul>";
+          }
+
+          // お手伝い内訳HTML
+          let taskDetailHtml = "";
+          if (task > 0) {
+            taskDetailHtml = "<ul style='margin:0;padding-left:1.2em;'>";
+            for (const t in taskDetails) {
+              taskDetailHtml += `<li>${t}: ${taskDetails[t]} 回</li>`;
+            }
+            taskDetailHtml += "</ul>";
+          }
+
+          html += `
+            <table>
+              <thead>
+                <tr><th colspan="2">${name} さんの先月の結果</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>お小遣い</td><td>${total} 円</td></tr>
+                <tr><td>早寝</td><td>${early} 回</td></tr>
+                <tr><td>遅寝</td><td>${late} 回</td></tr>
+                <tr><td>テスト（100点）</td><td>${test100} 回${testDetailHtml}</td></tr>
+                <tr><td>お手伝い内容</td><td>${task} 回${taskDetailHtml}</td></tr>
+              </tbody>
+            </table>
+          `;
+        } catch (err) {
+          html += `<p>${name} さんの先月データ取得に失敗しました。</p>`;
+        }
+      }
+      lastMonthDiv.innerHTML = html;
     }
   </script>
 </body>
