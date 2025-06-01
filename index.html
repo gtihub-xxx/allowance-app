@@ -892,35 +892,52 @@
       const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
       formData.append("task", taskVal);
 
+      // テスト情報を収集（デバッグログ追加）
       const testContainers = form.querySelectorAll('.test-container');
       const tests = [];
       
-      testContainers.forEach(container => {
-        const score = container.querySelector('.test-score').value;
-        const subject = container.querySelector('.test-subject').value;
-        const subjectOther = container.querySelector('.test-subject-other').value;
+      console.log(`${child}さん: ${testContainers.length}個のテストコンテナを発見`);
+      
+      testContainers.forEach((container, index) => {
+        const scoreInput = container.querySelector('.test-score');
+        const subjectSelect = container.querySelector('.test-subject');
+        const subjectOtherInput = container.querySelector('.test-subject-other');
         
-        if (score) {
+        const score = scoreInput ? scoreInput.value : '';
+        const subject = subjectSelect ? subjectSelect.value : '';
+        const subjectOther = subjectOtherInput ? subjectOtherInput.value : '';
+        
+        console.log(`テスト${index + 1}: 点数=${score}, 科目=${subject}, その他=${subjectOther}`);
+        
+        if (score && score.trim() !== '') { // 点数が入力されている場合のみ記録
           const finalSubject = subject === "その他" ? subjectOther : subject;
-          tests.push({
+          const testData = {
             score: parseInt(score),
-            subject: finalSubject
-          });
+            subject: finalSubject || '未入力'
+          };
+          tests.push(testData);
+          console.log(`テスト追加:`, testData);
         }
       });
+
+      console.log(`${child}さん: 最終的なテストデータ:`, tests);
 
       // 案1：既存列保持＋テスト詳細列追加
       // 既存列用（最初のテスト）
       if (tests.length > 0) {
         formData.append("test", tests[0].score);
         formData.append("subject", tests[0].subject);
+        console.log(`既存列用データ: 点数=${tests[0].score}, 科目=${tests[0].subject}`);
       } else {
         formData.append("test", "");
         formData.append("subject", "");
+        console.log('既存列用データ: テストなし');
       }
       
       // 新しいテスト詳細列
-      formData.append("tests", JSON.stringify(tests));
+      const testsJSON = JSON.stringify(tests);
+      formData.append("tests", testsJSON);
+      console.log(`テスト詳細JSON:`, testsJSON);
 
       fetch(endpoint, {
         method: "POST",
@@ -928,6 +945,7 @@
       })
       .then(res => res.text())
       .then(msg => {
+        console.log('サーバーレスポンス:', msg);
         const messageDiv = document.getElementById("message");
         messageDiv.textContent = "✅ 記録を送信しました：" + msg;
         messageDiv.style.display = "block";
@@ -944,6 +962,7 @@
         setTimeout(() => updateCounts(), 1000);
       })
       .catch(err => {
+        console.error('送信エラー:', err);
         alert("❌ 送信エラー：" + err);
       })
       .finally(() => {
