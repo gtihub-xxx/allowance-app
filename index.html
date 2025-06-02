@@ -1,594 +1,1601 @@
-// お小遣い管理システム v2.2.0 - Google Apps Script
-// 更新履歴:
-// v2.2.0: UI改良 - 統計レイアウトを2x2グリッドに最適化
-// v2.1.0: 複数テスト対応機能実装
-// スプレッドシート構造：日付 | 就寝時間 | テスト点数 | 科目 | テスト詳細 | お手伝い | 早寝 | 遅寝 | 増減 | 累積金額
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏆 お小遣い管理システム v2.2.0</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-function doPost(e) {
-  try {
-    console.log('=== doPost 開始 ===');
-    console.log('e.parameter の完全ダンプ:', JSON.stringify(e.parameter, null, 2));
-    console.log('e.parameter のキー一覧:', Object.keys(e.parameter));
-    console.log('e.parameter.tests の値:', e.parameter.tests);
-    console.log('e.parameter.tests の型:', typeof e.parameter.tests);
-    console.log('e.parameter.tests === undefined?', e.parameter.tests === undefined);
-    console.log('e.parameter.tests === null?', e.parameter.tests === null);
-    console.log('e.parameter.tests === ""?', e.parameter.tests === "");
-    
-    // すべてのパラメータを個別にログ出力
-    for (const [key, value] of Object.entries(e.parameter)) {
-      console.log(`パラメータ ${key}:`, value, `(型: ${typeof value})`);
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
     }
-    
-    // スプレッドシートを取得
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const child = e.parameter.child;
-    const sheetName = child; // 'A' または 'H' (修正: 'さん'を削除)
-    const sheet = spreadsheet.getSheetByName(sheetName);
-    
-    if (!sheet) {
-      throw new Error(`シート "${sheetName}" が見つかりません`);
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    
-    // 基本データの取得
-    const date = e.parameter.date;
-    const bedtime = e.parameter.bedtime || '';
-    const task = e.parameter.task || '';
-    const early = e.parameter.early === 'true';
-    const late = e.parameter.late === 'true';
-    
-    console.log(`基本データ: 日付=${date}, 就寝=${bedtime}, お手伝い=${task}, 早寝=${early}, 遅寝=${late}`);
-    
-    // テストデータの処理
-    let tests = [];
-    let firstTestScore = '';
-    let firstTestSubject = '';
-    
-    console.log('受信したtestsパラメータ:', e.parameter.tests);
-    console.log('testsパラメータの型:', typeof e.parameter.tests);
-    console.log('全パラメータ一覧:', Object.keys(e.parameter));
-    
-    // testsパラメータの存在確認を厳密に
-    const testsParam = e.parameter.tests;
-    console.log('testsParam:', testsParam);
-    console.log('testsParam truthy?', !!testsParam);
-    console.log('testsParam length:', testsParam ? testsParam.length : 'N/A');
-    
-    if (testsParam && testsParam !== '' && testsParam !== 'undefined' && testsParam !== 'null') {
-      try {
-        console.log('JSON.parse を試行中...');
-        tests = JSON.parse(testsParam);
-        console.log('JSON.parse 成功:', tests);
-        console.log('解析されたテストデータ:', tests);
-        console.log('テスト数:', tests.length);
-        
-        // 各テストの詳細をログ出力
-        tests.forEach((test, index) => {
-          console.log(`テスト${index + 1}: 点数=${test.score}, 科目=${test.subject}`);
-        });
-        
-        // 最初のテストを既存列用に取得
-        if (tests.length > 0) {
-          firstTestScore = tests[0].score || '';
-          firstTestSubject = tests[0].subject || '';
-          console.log(`既存列用: 点数=${firstTestScore}, 科目=${firstTestSubject}`);
-        }
-      } catch (error) {
-        console.error('テストデータのJSON解析エラー:', error);
-        console.error('問題のあるJSON文字列:', testsParam);
-        tests = [];
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      animation: bounce 2s infinite;
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      margin-bottom: 15px;
+    }
+
+    .version-info {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .version-badge {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .version-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .version-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+
+    .children-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .child-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+      position: relative;
+      transform: translateY(0);
+      transition: all 0.3s ease;
+    }
+
+    .child-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.2);
+    }
+
+    .child-card.child-a {
+      border-top: 5px solid #FF6B6B;
+    }
+
+    .child-card.child-h {
+      border-top: 5px solid #4ECDC4;
+    }
+
+    .child-header {
+      padding: 25px;
+      background: linear-gradient(135deg, #FF6B6B, #FFE66D);
+      color: white;
+      text-align: center;
+      position: relative;
+    }
+
+    .child-card.child-h .child-header {
+      background: linear-gradient(135deg, #4ECDC4, #44A08D);
+    }
+
+    .child-header h2 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .total-amount {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .child-content {
+      padding: 25px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 25px;
+      min-height: 200px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 80px;
+    }
+
+    .stat-card:hover {
+      transform: scale(1.05);
+      border-color: #FF6B6B;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .child-card.child-h .stat-card:hover {
+      border-color: #4ECDC4;
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .record-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+    }
+
+    .child-card.child-h .record-btn {
+      background: linear-gradient(135deg, #4ECDC4, #44A08D);
+      box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+    }
+
+    .record-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+    }
+
+    .child-card.child-h .record-btn:hover {
+      box-shadow: 0 8px 25px rgba(78, 205, 196, 0.6);
+    }
+
+    .record-btn:active {
+      transform: translateY(0);
+    }
+
+    .form {
+      display: none;
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      margin-top: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      border: 2px solid #f8f9fa;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #FF6B6B;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+    }
+
+    .child-card.child-h .form-input:focus {
+      border-color: #4ECDC4;
+      box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+    }
+
+    .test-section {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .test-section-title {
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .test-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      border: 2px solid #e9ecef;
+      transition: all 0.3s ease;
+    }
+
+    .test-container:hover {
+      border-color: #FF6B6B;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .child-card.child-h .test-container:hover {
+      border-color: #4ECDC4;
+    }
+
+    .test-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .test-title {
+      font-weight: bold;
+      color: #333;
+      font-size: 1.1rem;
+    }
+
+    .remove-test-btn {
+      background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .remove-test-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 10px rgba(255, 107, 107, 0.4);
+    }
+
+    .test-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .add-test-btn {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+
+    .add-test-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    }
+
+    .checkbox-section {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 15px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      padding: 12px;
+      background: white;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .checkbox-row:hover {
+      transform: translateX(5px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    .checkbox-row label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      width: 100%;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #FF6B6B;
+    }
+
+    .submit-section {
+      margin-top: 25px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(40, 167, 69, 0.6);
+    }
+
+    .actions-section {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .action-btn {
+      background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+      color: white;
+      border: none;
+      padding: 15px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(108, 92, 231, 0.3);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(108, 92, 231, 0.5);
+    }
+
+    .message {
+      background: linear-gradient(135deg, #00b894, #00cec9);
+      color: white;
+      padding: 15px 20px;
+      border-radius: 15px;
+      margin: 20px 0;
+      font-weight: bold;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0, 184, 148, 0.3);
+      display: none;
+    }
+
+    .history-section, .last-month-section {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      margin-top: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    th {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+
+    tr:hover {
+      background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 142, 83, 0.1));
+    }
+
+    .spreadsheet-link {
+      text-align: center;
+      margin-top: 30px;
+    }
+
+    .spreadsheet-link a {
+      display: inline-block;
+      background: linear-gradient(135deg, #fd79a8, #fdcb6e);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 25px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(253, 121, 168, 0.4);
+    }
+
+    .spreadsheet-link a:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(253, 121, 168, 0.6);
+    }
+
+    @media (max-width: 768px) {
+      .children-container {
+        grid-template-columns: 1fr;
       }
-    } else {
-      console.log('testsパラメータが空またはundefined');
-      console.log('利用可能なパラメータ:', Object.keys(e.parameter).join(', '));
-      // 空の配列を設定
-      tests = [];
+      
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        min-height: 160px;
+      }
+      
+      .test-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .actions-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .total-amount {
+        font-size: 2rem;
+      }
+      
+      .version-info {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .version-content {
+        margin: 10px;
+        padding: 20px;
+        max-height: 90vh;
+      }
+      
+      .stat-card {
+        padding: 15px;
+        min-height: 70px;
+      }
+      
+      .version-title {
+        font-size: 1.5rem;
+      }
     }
-    
-    // 増減の計算
-    let delta = 0;
-    
-    // テストボーナス（100点のテスト数×100円）
-    const perfectTests = tests.filter(test => test.score === 100);
-    const testBonus = perfectTests.length * 100;
-    delta += testBonus;
-    console.log(`テストボーナス: 100点×${perfectTests.length}回 = ${testBonus}円`);
-    
-    // お手伝いボーナス
-    if (task && task.trim() !== '') {
-      delta += 10;
-      console.log('お手伝いボーナス: +10円');
-    }
-    
-    // 早寝・遅寝ボーナス/ペナルティ
-    if (early) {
-      delta += 10;
-      console.log('早寝ボーナス: +10円');
-    }
-    if (late) {
-      delta -= 10;
-      console.log('遅寝ペナルティ: -10円');
-    }
-    
-    console.log(`合計増減: ${delta}円`);
-    
-    // 累積金額の計算
-    const baseAmount = child === 'A' ? 600 : 300; // 基本お小遣い
-    const currentMonthTotal = calculateMonthlyTotal(sheet, date, baseAmount);
-    const newTotal = currentMonthTotal + delta;
-    
-    console.log(`累積計算: 今月累積${currentMonthTotal} + 今回増減${delta} = 新累積${newTotal}`);
-    
-    // テスト詳細列のJSON文字列を準備
-    const testDetailsJSON = tests.length > 0 ? JSON.stringify(tests) : '[]';
-    console.log('スプレッドシートに書き込むテスト詳細:', testDetailsJSON);
-    console.log('テスト詳細の文字数:', testDetailsJSON.length);
-    
-    // スプレッドシートに記録
-    const newRow = [
-      date,                           // A列：日付
-      bedtime,                        // B列：就寝時間
-      firstTestScore,                 // C列：テスト点数（既存列、最初のテスト）
-      firstTestSubject,               // D列：科目（既存列、最初のテスト）
-      testDetailsJSON,                // E列：テスト詳細（新規列、全テスト）
-      task,                           // F列：お手伝い
-      early ? 1 : 0,                  // G列：早寝
-      late ? 1 : 0,                   // H列：遅寝
-      delta,                          // I列：増減
-      newTotal                        // J列：累積金額
-    ];
-    
-    console.log('書き込み行データ:', newRow);
-    console.log('E列に書き込む値:', newRow[4]);
-    
-    // 書き込み前の最終確認
-    if (newRow[4] === '') {
-      console.error('警告: E列が空です！testsパラメータが受信されていません');
-      console.error('デバッグ: tests =', tests);
-      console.error('デバッグ: testDetailsJSON =', testDetailsJSON);
-    }
-    
-    sheet.appendRow(newRow);
-    
-    // 書き込み後の確認
-    const lastRowNum = sheet.getLastRow();
-    const writtenValue = sheet.getRange(lastRowNum, 5).getValue();
-    console.log('書き込み後のE列の値:', writtenValue);
-    
-    console.log('=== スプレッドシート書き込み完了 ===');
-    
-    // 成功レスポンス
-    const message = `${child}さんの記録を保存しました (v2.2.0)。増減: ${delta > 0 ? '+' : ''}${delta}円、累積: ${newTotal}円`;
-    console.log('レスポンスメッセージ:', message);
-    
-    return ContentService.createTextOutput(message);
-    
-  } catch (error) {
-    console.error('=== doPost エラー ===', error);
-    console.error('エラースタックトレース:', error.stack);
-    return ContentService.createTextOutput(`エラー: ${error.message}`);
-  }
-}
 
-function doGet(e) {
-  try {
-    const child = e.parameter.child;
-    const history = e.parameter.history;
-    
-    if (!child) {
-      throw new Error('child パラメータが必要です');
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
     }
-    
-    if (history === 'true') {
-      // 履歴データを取得
-      const historyData = getChildHistory(child);
-      return ContentService
-        .createTextOutput(JSON.stringify(historyData))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    // 通常のレスポンス
-    return ContentService.createTextOutput('お小遣い管理システム API');
-    
-  } catch (error) {
-    console.error('doGet エラー:', error);
-    return ContentService
-      .createTextOutput(JSON.stringify({ error: error.message }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
 
-/**
- * 子供の履歴データを取得
- */
-function getChildHistory(child) {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetName = child; // 修正: 'さん'を削除
-    const sheet = spreadsheet.getSheetByName(sheetName);
-    
-    if (!sheet) {
-      throw new Error(`シート "${sheetName}" が見つかりません`);
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
-    
-    // データ範囲を取得（ヘッダー行を除く）
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) {
-      return []; // データがない場合
+
+    /* バージョン情報モーダル */
+    .version-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
     }
-    
-    const dataRange = sheet.getRange(2, 1, lastRow - 1, 10); // A2:J最終行
-    const values = dataRange.getValues();
-    
-    // データを JSON 形式に変換
-    const headers = ['日付', '就寝時間', 'テスト点数', '科目', 'テスト詳細', 'お手伝い内容', '早寝', '遅寝', '増減', '累積金額'];
-    const historyData = values.map(row => {
-      const record = {};
-      headers.forEach((header, index) => {
-        let value = row[index];
+
+    .version-content {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      margin: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+    }
+
+    .version-header {
+      text-align: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f8f9fa;
+    }
+
+    .version-title {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .version-current {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .version-section {
+      margin-bottom: 20px;
+    }
+
+    .version-section h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      border-left: 4px solid #667eea;
+      padding-left: 10px;
+    }
+
+    .version-section ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .version-section li {
+      padding: 5px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .version-section li:before {
+      content: '✅';
+      position: absolute;
+      left: 0;
+    }
+
+    .version-close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+      transition: color 0.3s ease;
+    }
+
+    .version-close:hover {
+      color: #333;
+    }
+
+    .version-footer {
+      text-align: center;
+      margin-top: 25px;
+      padding-top: 15px;
+      border-top: 2px solid #f8f9fa;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏆 お小遣い管理システム 💰</h1>
+      <p>頑張った分だけお小遣いがもらえるよ！</p>
+      <div class="version-info">
+        <span class="version-badge">v2.2.0</span>
+        <button class="version-btn" onclick="showVersionInfo()">ℹ️ システム情報</button>
+      </div>
+    </div>
+
+    <div class="children-container">
+      <!-- A さんのカード -->
+      <div class="child-card child-a">
+        <div class="child-header">
+          <h2>👦 A さん</h2>
+          <div class="total-amount">¥<span id="totalA">600</span></div>
+          <div>今月のお小遣い</div>
+        </div>
+        <div class="child-content">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">😴</div>
+              <div class="stat-label">早寝</div>
+              <div class="stat-value"><span id="earlyA">0</span> 回</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🌙</div>
+              <div class="stat-label">遅寝</div>
+              <div class="stat-value"><span id="lateA">0</span> 回</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">💯</div>
+              <div class="stat-label">テスト100点</div>
+              <div class="stat-value"><span id="testA">0</span> 回</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🏠</div>
+              <div class="stat-label">お手伝い</div>
+              <div class="stat-value"><span id="taskA">0</span> 回</div>
+            </div>
+          </div>
+          <button class="record-btn" onclick="toggleForm('A')">📝 今日の記録をつける</button>
+        </div>
+
+        <form class="form" id="formA" onsubmit="submitForm(event, 'A')">
+          <div class="form-group">
+            <label class="form-label">📅 日付</label>
+            <input type="date" name="date" required class="form-input today-date">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">🛏️ 就寝時間</label>
+            <input type="time" name="bedtime" class="form-input now-time">
+          </div>
+          
+          <div class="test-section">
+            <div class="test-section-title">
+              📚 テスト記録
+            </div>
+            <div id="testsContainerA">
+              <div class="test-container" data-test-index="0">
+                <div class="test-header">
+                  <span class="test-title">テスト 1</span>
+                  <button type="button" class="remove-test-btn" onclick="removeTest(this)" style="display: none;">削除</button>
+                </div>
+                <div class="test-row">
+                  <div class="form-group">
+                    <label class="form-label">点数</label>
+                    <input type="number" name="test_score" min="0" max="100" class="form-input test-score" placeholder="点数を入力">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">科目</label>
+                    <select name="test_subject" class="form-input test-subject" onchange="handleTestSubjectOther(this, 'A', 0)">
+                      <option value="">--選択--</option>
+                      <option value="国語">国語</option>
+                      <option value="算数">算数</option>
+                      <option value="理科">理科</option>
+                      <option value="社会">社会</option>
+                      <option value="その他">その他</option>
+                    </select>
+                    <input type="text" name="test_subject_other" class="form-input test-subject-other" id="testSubjectOtherA0" placeholder="科目を入力" style="display:none;">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="add-test-btn" onclick="addTest('A')">➕ テストを追加</button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🏠 お手伝い内容</label>
+            <select name="task" class="form-input" onchange="handleTaskOther(this, 'A')">
+              <option value="">--選択--</option>
+              <option value="靴ならべ">靴ならべ</option>
+              <option value="箸並べ">箸並べ</option>
+              <option value="掃除">掃除</option>
+              <option value="その他">その他</option>
+            </select>
+            <input type="text" name="taskOther" id="taskOtherA" class="form-input" placeholder="お手伝い内容を入力" style="display:none;">
+          </div>
+          
+          <div class="checkbox-section">
+            <div class="checkbox-row">
+              <label><input type="checkbox" name="early"> 😴 早寝をした (+10円)</label>
+            </div>
+            <div class="checkbox-row">
+              <label><input type="checkbox" name="late"> 🌙 遅寝をした (-10円)</label>
+            </div>
+          </div>
+
+          <div class="submit-section">
+            <button type="submit" class="submit-btn">✨ 記録を送信</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- H さんのカード -->
+      <div class="child-card child-h">
+        <div class="child-header">
+          <h2>👧 H さん</h2>
+          <div class="total-amount">¥<span id="totalH">300</span></div>
+          <div>今月のお小遣い</div>
+        </div>
+        <div class="child-content">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">😴</div>
+              <div class="stat-label">早寝</div>
+              <div class="stat-value"><span id="earlyH">0</span> 回</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🌙</div>
+              <div class="stat-label">遅寝</div>
+              <div class="stat-value"><span id="lateH">0</span> 回</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">💯</div>
+              <div class="stat-label">テスト100点</div>
+              <div class="stat-value"><span id="testH">0</span> 回</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🏠</div>
+              <div class="stat-label">お手伝い</div>
+              <div class="stat-value"><span id="taskH">0</span> 回</div>
+            </div>
+          </div>
+          <button class="record-btn" onclick="toggleForm('H')">📝 今日の記録をつける</button>
+        </div>
+
+        <form class="form" id="formH" onsubmit="submitForm(event, 'H')">
+          <div class="form-group">
+            <label class="form-label">📅 日付</label>
+            <input type="date" name="date" required class="form-input today-date">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">🛏️ 就寝時間</label>
+            <input type="time" name="bedtime" class="form-input now-time">
+          </div>
+          
+          <div class="test-section">
+            <div class="test-section-title">
+              📚 テスト記録
+            </div>
+            <div id="testsContainerH">
+              <div class="test-container" data-test-index="0">
+                <div class="test-header">
+                  <span class="test-title">テスト 1</span>
+                  <button type="button" class="remove-test-btn" onclick="removeTest(this)" style="display: none;">削除</button>
+                </div>
+                <div class="test-row">
+                  <div class="form-group">
+                    <label class="form-label">点数</label>
+                    <input type="number" name="test_score" min="0" max="100" class="form-input test-score" placeholder="点数を入力">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">科目</label>
+                    <select name="test_subject" class="form-input test-subject" onchange="handleTestSubjectOther(this, 'H', 0)">
+                      <option value="">--選択--</option>
+                      <option value="国語">国語</option>
+                      <option value="算数">算数</option>
+                      <option value="理科">理科</option>
+                      <option value="社会">社会</option>
+                      <option value="その他">その他</option>
+                    </select>
+                    <input type="text" name="test_subject_other" class="form-input test-subject-other" id="testSubjectOtherH0" placeholder="科目を入力" style="display:none;">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="add-test-btn" onclick="addTest('H')">➕ テストを追加</button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🏠 お手伝い内容</label>
+            <select name="task" class="form-input" onchange="handleTaskOther(this, 'H')">
+              <option value="">--選択--</option>
+              <option value="靴ならべ">靴ならべ</option>
+              <option value="箸並べ">箸並べ</option>
+              <option value="掃除">掃除</option>
+              <option value="その他">その他</option>
+            </select>
+            <input type="text" name="taskOther" id="taskOtherH" class="form-input" placeholder="お手伝い内容を入力" style="display:none;">
+          </div>
+          
+          <div class="checkbox-section">
+            <div class="checkbox-row">
+              <label><input type="checkbox" name="early"> 😴 早寝をした (+10円)</label>
+            </div>
+            <div class="checkbox-row">
+              <label><input type="checkbox" name="late"> 🌙 遅寝をした (-10円)</label>
+            </div>
+          </div>
+
+          <div class="submit-section">
+            <button type="submit" class="submit-btn">✨ 記録を送信</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <div class="actions-section">
+      <div class="actions-grid">
+        <button class="action-btn" onclick="toggleHistory()">📊 履歴を見る</button>
+        <button class="action-btn" onclick="showLastMonth()">📈 先月の結果</button>
+      </div>
+    </div>
+
+    <div id="history" class="history-section" style="display:none;"></div>
+    <div id="lastMonth" class="last-month-section" style="display:none;"></div>
+
+    <!-- バージョン情報モーダル -->
+    <div id="versionModal" class="version-modal">
+      <div class="version-content">
+        <button class="version-close" onclick="closeVersionInfo()">×</button>
         
-        // 日付の処理
-        if (header === '日付' && value instanceof Date) {
-          value = Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-        }
-        
-        // 就寝時間の処理
-        if (header === '就寝時間' && value instanceof Date) {
-          value = Utilities.formatDate(value, Session.getScriptTimeZone(), 'HH:mm');
-        }
-        
-        record[header] = value;
+        <div class="version-header">
+          <h2 class="version-title">🏆 お小遣い管理システム</h2>
+          <div class="version-current">Version 2.2.0</div>
+        </div>
+
+        <div class="version-section">
+          <h3>✨ 新機能 v2.2.0</h3>
+          <ul>
+            <li>統計レイアウト改善: 2x2グリッドで見やすく表示</li>
+            <li>モバイル最適化: 小画面でも2x2レイアウトを維持</li>
+            <li>バージョン管理: コード改良ごとの自動バージョン更新</li>
+          </ul>
+        </div>
+
+        <div class="version-section">
+          <h3>🚀 主要機能 v2.1.0</h3>
+          <ul>
+            <li>複数テスト対応: 1日に複数のテストを記録可能</li>
+            <li>動的テスト追加: 「テストを追加」ボタンで無制限追加</li>
+            <li>リッチUI: モダンなカードデザイン、アニメーション効果</li>
+            <li>レスポンシブデザイン: スマホ・タブレット・PC対応</li>
+          </ul>
+        </div>
+
+        <div class="version-section">
+          <h3>🎯 基本機能</h3>
+          <ul>
+            <li>子供別管理: Aさん（基本600円）、Hさん（基本300円）</li>
+            <li>ポイント制: テスト100点(+100円)、お手伝い(+10円)</li>
+            <li>生活習慣: 早寝(+10円)、遅寝(-10円)</li>
+            <li>履歴管理: 直近10日間の記録表示</li>
+            <li>月次集計: 先月の結果表示</li>
+          </ul>
+        </div>
+
+        <div class="version-section">
+          <h3>🔧 システム構成</h3>
+          <ul>
+            <li>フロントエンド: HTML/CSS/JavaScript</li>
+            <li>バックエンド: Google Apps Script</li>
+            <li>データベース: Google Spreadsheet</li>
+            <li>複数テスト: JSON形式でデータ保存</li>
+          </ul>
+        </div>
+
+        <div class="version-footer">
+          <p>最終更新: 2025年6月2日 v2.2.0</p>
+          <p>🎉 複数テスト機能 + 2x2統計レイアウト完全動作中！</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="spreadsheet-link">
+      <a href="https://docs.google.com/spreadsheets/d/1TYzfK0qGEYS-_njaXugkHO8knr1dJTOqPU_4qrDva_s/edit?usp=sharing" target="_blank" rel="noopener noreferrer">
+        📊 元データ（スプレッドシート）を見る
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // 【更新】新しいエンドポイントURL
+    const endpoint = "https://script.google.com/macros/s/AKfycbwd0z1p_zrzZgDzWQHbUwZcNAejmp2sRzQZdBrcuiYR1Zl0DlMTqQ61PDbYUekPpC5r/exec";
+    let testCounters = { A: 1, H: 1 };
+
+    function handleTaskOther(select, child) {
+      const input = document.getElementById(`taskOther${child}`);
+      input.style.display = select.value === "その他" ? "block" : "none";
+    }
+
+    function handleTestSubjectOther(select, child, testIndex) {
+      const input = document.getElementById(`testSubjectOther${child}${testIndex}`);
+      input.style.display = select.value === "その他" ? "block" : "none";
+    }
+
+    function addTest(child) {
+      const container = document.getElementById(`testsContainer${child}`);
+      const testIndex = testCounters[child];
+      testCounters[child]++;
+
+      const testDiv = document.createElement('div');
+      testDiv.className = 'test-container';
+      testDiv.setAttribute('data-test-index', testIndex);
+      testDiv.style.opacity = '0';
+      testDiv.style.transform = 'translateY(-20px)';
+      
+      testDiv.innerHTML = `
+        <div class="test-header">
+          <span class="test-title">テスト ${testIndex + 1}</span>
+          <button type="button" class="remove-test-btn" onclick="removeTest(this)">削除</button>
+        </div>
+        <div class="test-row">
+          <div class="form-group">
+            <label class="form-label">点数</label>
+            <input type="number" name="test_score" min="0" max="100" class="form-input test-score" placeholder="点数を入力">
+          </div>
+          <div class="form-group">
+            <label class="form-label">科目</label>
+            <select name="test_subject" class="form-input test-subject" onchange="handleTestSubjectOther(this, '${child}', ${testIndex})">
+              <option value="">--選択--</option>
+              <option value="国語">国語</option>
+              <option value="算数">算数</option>
+              <option value="理科">理科</option>
+              <option value="社会">社会</option>
+              <option value="その他">その他</option>
+            </select>
+            <input type="text" name="test_subject_other" class="form-input test-subject-other" id="testSubjectOther${child}${testIndex}" placeholder="科目を入力" style="display:none;">
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(testDiv);
+      
+      // アニメーション効果
+      setTimeout(() => {
+        testDiv.style.transition = 'all 0.3s ease';
+        testDiv.style.opacity = '1';
+        testDiv.style.transform = 'translateY(0)';
+      }, 10);
+      
+      updateRemoveButtons(child);
+    }
+
+    function removeTest(button) {
+      const testContainer = button.closest('.test-container');
+      const form = testContainer.closest('form');
+      const child = form.id.slice(-1);
+      
+      // アニメーション効果
+      testContainer.style.transition = 'all 0.3s ease';
+      testContainer.style.opacity = '0';
+      testContainer.style.transform = 'translateX(-100%)';
+      
+      setTimeout(() => {
+        testContainer.remove();
+        updateRemoveButtons(child);
+        updateTestTitles(child);
+      }, 300);
+    }
+
+    function updateRemoveButtons(child) {
+      const container = document.getElementById(`testsContainer${child}`);
+      const testContainers = container.querySelectorAll('.test-container');
+      
+      testContainers.forEach((container, index) => {
+        const removeBtn = container.querySelector('.remove-test-btn');
+        removeBtn.style.display = testContainers.length > 1 ? 'block' : 'none';
       });
-      return record;
-    });
-    
-    console.log(`${child}さんの履歴データを取得: ${historyData.length}件`);
-    return historyData;
-    
-  } catch (error) {
-    console.error('履歴取得エラー:', error);
-    throw error;
-  }
-}
-
-/**
- * 今月の累積金額を計算
- */
-function calculateMonthlyTotal(sheet, currentDate, baseAmount) {
-  try {
-    const targetDate = new Date(currentDate);
-    const targetYear = targetDate.getFullYear();
-    const targetMonth = targetDate.getMonth();
-    
-    // データ範囲を取得
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) {
-      return baseAmount; // データがない場合は基本金額
     }
-    
-    const dataRange = sheet.getRange(2, 1, lastRow - 1, 10); // A2:J最終行
-    const values = dataRange.getValues();
-    
-    let monthlyDelta = 0;
-    
-    // 同月のデータのみフィルタリングして増減を合計
-    values.forEach(row => {
-      const rowDate = new Date(row[0]); // A列：日付
+
+    function updateTestTitles(child) {
+      const container = document.getElementById(`testsContainer${child}`);
+      const testContainers = container.querySelectorAll('.test-container');
       
-      if (rowDate.getFullYear() === targetYear && rowDate.getMonth() === targetMonth) {
-        const delta = row[8] || 0; // I列：増減
-        if (typeof delta === 'number') {
-          monthlyDelta += delta;
+      testContainers.forEach((container, index) => {
+        const title = container.querySelector('.test-title');
+        title.textContent = `テスト ${index + 1}`;
+      });
+    }
+
+    function toggleForm(child) {
+      const form = document.getElementById("form" + child);
+      if (form.style.display === 'block') {
+        form.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+          form.style.display = 'none';
+        }, 300);
+      } else {
+        form.style.display = 'block';
+        form.style.animation = 'slideIn 0.3s ease';
+      }
+    }
+
+    function submitForm(event, child) {
+      event.preventDefault();
+      const form = event.target;
+      const submitBtn = form.querySelector('.submit-btn');
+      const originalText = submitBtn.textContent;
+      
+      // ローディング状態
+      submitBtn.innerHTML = '<div class="loading"></div> 送信中...';
+      submitBtn.disabled = true;
+      
+      const formData = new FormData();
+      formData.append("child", child);
+      formData.append("date", form.date.value);
+      formData.append("bedtime", form.bedtime.value);
+      formData.append("early", form.early.checked);
+      formData.append("late", form.late.checked);
+      
+      const taskVal = form.task.value === "その他" ? form.taskOther.value : form.task.value;
+      formData.append("task", taskVal);
+
+      // テスト情報を収集（デバッグログ追加）
+      const testContainers = form.querySelectorAll('.test-container');
+      const tests = [];
+      
+      console.log(`${child}さん: ${testContainers.length}個のテストコンテナを発見`);
+      
+      testContainers.forEach((container, index) => {
+        const scoreInput = container.querySelector('.test-score');
+        const subjectSelect = container.querySelector('.test-subject');
+        const subjectOtherInput = container.querySelector('.test-subject-other');
+        
+        const score = scoreInput ? scoreInput.value : '';
+        const subject = subjectSelect ? subjectSelect.value : '';
+        const subjectOther = subjectOtherInput ? subjectOtherInput.value : '';
+        
+        console.log(`テスト${index + 1}: 点数=${score}, 科目=${subject}, その他=${subjectOther}`);
+        
+        if (score && score.trim() !== '') { // 点数が入力されている場合のみ記録
+          const finalSubject = subject === "その他" ? subjectOther : subject;
+          const testData = {
+            score: parseInt(score),
+            subject: finalSubject || '未入力'
+          };
+          tests.push(testData);
+          console.log(`テスト追加:`, testData);
+        }
+      });
+
+      console.log(`${child}さん: 最終的なテストデータ:`, tests);
+
+      // 案1：既存列保持＋テスト詳細列追加
+      // 既存列用（最初のテスト）
+      if (tests.length > 0) {
+        formData.append("test", tests[0].score);
+        formData.append("subject", tests[0].subject);
+        console.log(`既存列用データ: 点数=${tests[0].score}, 科目=${tests[0].subject}`);
+      } else {
+        formData.append("test", "");
+        formData.append("subject", "");
+        console.log('既存列用データ: テストなし');
+      }
+      
+      // 【修正】新しいテスト詳細列 - FormDataの制限を回避
+      const testsJSON = JSON.stringify(tests);
+      console.log(`テスト詳細JSON:`, testsJSON);
+      
+      // FormDataの代わりにURLSearchParamsを使用
+      const params = new URLSearchParams();
+      params.append("child", child);
+      params.append("date", form.date.value);
+      params.append("bedtime", form.bedtime.value);
+      params.append("early", form.early.checked);
+      params.append("late", form.late.checked);
+      params.append("task", taskVal);
+      
+      if (tests.length > 0) {
+        params.append("test", tests[0].score);
+        params.append("subject", tests[0].subject);
+      } else {
+        params.append("test", "");
+        params.append("subject", "");
+      }
+      
+      // 重要：testsパラメータを確実に送信
+      params.append("tests", testsJSON);
+      
+      console.log('送信パラメータ一覧:');
+      for (const [key, value] of params.entries()) {
+        console.log(`  ${key}: ${value}`);
+      }
+
+      fetch(endpoint, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params
+      })
+      .then(res => res.text())
+      .then(msg => {
+        console.log('サーバーレスポンス:', msg);
+        const messageDiv = document.getElementById("message");
+        messageDiv.textContent = "✅ 記録を送信しました：" + msg;
+        messageDiv.style.display = "block";
+        
+        form.reset();
+        form.style.display = 'none';
+        resetTestContainers(child);
+        
+        // 成功メッセージを3秒後に非表示
+        setTimeout(() => {
+          messageDiv.style.display = "none";
+        }, 3000);
+        
+        setTimeout(() => updateCounts(), 1000);
+      })
+      .catch(err => {
+        console.error('送信エラー:', err);
+        alert("❌ 送信エラー：" + err);
+      })
+      .finally(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      });
+    }
+
+    function resetTestContainers(child) {
+      const container = document.getElementById(`testsContainer${child}`);
+      const testContainers = container.querySelectorAll('.test-container');
+      
+      for (let i = testContainers.length - 1; i > 0; i--) {
+        testContainers[i].remove();
+      }
+      
+      const firstContainer = container.querySelector('.test-container');
+      if (firstContainer) {
+        const removeBtn = firstContainer.querySelector('.remove-test-btn');
+        removeBtn.style.display = 'none';
+        const subjectOtherInput = firstContainer.querySelector('.test-subject-other');
+        if (subjectOtherInput) {
+          subjectOtherInput.style.display = 'none';
         }
       }
+      
+      testCounters[child] = 1;
+    }
+
+    async function updateCounts() {
+      const names = ["A", "H"];
+      const now = new Date();
+      const thisMonth = now.getMonth();
+      const thisYear = now.getFullYear();
+
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const filtered = data.filter(row => {
+            const d = new Date(row["日付"]);
+            return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
+          });
+
+          const early = filtered.filter(row => row["早寝"] === 1 || row["早寝"] === "1").length;
+          const late = filtered.filter(row => row["遅寝"] === 1 || row["遅寝"] === "1").length;
+          
+          let test100Count = 0;
+          filtered.forEach(row => {
+            // 案1：テスト詳細列を優先、なければ既存列も確認
+            if (row["テスト詳細"]) {
+              try {
+                const tests = JSON.parse(row["テスト詳細"]);
+                if (Array.isArray(tests)) {
+                  test100Count += tests.filter(test => test.score === 100).length;
+                }
+              } catch (e) {}
+            } else if (Number(row["テスト点数"]) === 100) {
+              // 既存データの後方互換性
+              test100Count++;
+            }
+          });
+          
+          const task = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "").length;
+
+          const total = filtered.reduce((sum, row) => {
+            let delta = 0;
+            
+            // 案1：テスト詳細列を優先、なければ既存列も確認
+            if (row["テスト詳細"]) {
+              try {
+                const tests = JSON.parse(row["テスト詳細"]);
+                if (Array.isArray(tests)) {
+                  delta += tests.filter(test => test.score === 100).length * 100;
+                }
+              } catch (e) {}
+            } else if (Number(row["テスト点数"]) === 100) {
+              // 既存データの後方互換性
+              delta += 100;
+            }
+            
+            if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
+            if (row["早寝"] === 1 || row["早寝"] === "1") delta += 10;
+            if (row["遅寝"] === 1 || row["遅寝"] === "1") delta -= 10;
+            return sum + delta;
+          }, name === "A" ? 600 : 300);
+
+          // アニメーション効果付きで数値更新
+          animateValue(`early${name}`, parseInt(document.getElementById(`early${name}`).textContent), early);
+          animateValue(`late${name}`, parseInt(document.getElementById(`late${name}`).textContent), late);
+          animateValue(`test${name}`, parseInt(document.getElementById(`test${name}`).textContent), test100Count);
+          animateValue(`task${name}`, parseInt(document.getElementById(`task${name}`).textContent), task);
+          animateValue(`total${name}`, parseInt(document.getElementById(`total${name}`).textContent), total);
+
+        } catch (err) {
+          console.error(`カウント更新失敗(${name})`, err);
+        }
+      }
+    }
+
+    function animateValue(elementId, start, end) {
+      const element = document.getElementById(elementId);
+      const duration = 1000;
+      const startTime = performance.now();
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const current = Math.round(start + (end - start) * progress);
+        
+        element.textContent = current;
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mi = String(now.getMinutes()).padStart(2, '0');
+      const timeStr = `${hh}:${mi}`;
+
+      document.querySelectorAll(".today-date").forEach(el => el.value = dateStr);
+      document.querySelectorAll(".now-time").forEach(el => el.value = timeStr);
+
+      updateCounts();
     });
-    
-    const total = baseAmount + monthlyDelta;
-    console.log(`月間累積計算: 基本${baseAmount} + 増減${monthlyDelta} = ${total}`);
-    
-    return total;
-    
-  } catch (error) {
-    console.error('月間累積計算エラー:', error);
-    return baseAmount; // エラー時は基本金額を返す
-  }
-}
 
-/**
- * テスト用関数：手動でデータを作成
- */
-function createTestData() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // Aシートの作成/取得 (修正: 'さん'を削除)
-    let sheetA = spreadsheet.getSheetByName('A');
-    if (!sheetA) {
-      sheetA = spreadsheet.insertSheet('A');
-    }
-    
-    // Hシートの作成/取得 (修正: 'さん'を削除)
-    let sheetH = spreadsheet.getSheetByName('H');
-    if (!sheetH) {
-      sheetH = spreadsheet.insertSheet('H');
-    }
-    
-    // ヘッダー行の設定
-    const headers = ['日付', '就寝時間', 'テスト点数', '科目', 'テスト詳細', 'お手伝い', '早寝', '遅寝', '増減', '累積金額'];
-    
-    sheetA.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheetH.getRange(1, 1, 1, headers.length).setValues([headers]);
-    
-    console.log('テスト用シートとヘッダーを作成しました (v2.2.0)');
-    
-  } catch (error) {
-    console.error('テストデータ作成エラー:', error);
-  }
-}
+    async function toggleHistory() {
+      const historyDiv = document.getElementById("history");
+      historyDiv.style.display = historyDiv.style.display === "none" ? "block" : "none";
+      if (historyDiv.innerHTML) return;
 
-/**
- * 月初めにリセット用関数（必要に応じて手動実行）
- */
-function resetMonthlyData() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheets = ['A', 'H']; // 修正: 'さん'を削除
-    
-    const confirm = Browser.msgBox(
-      '月次リセット',
-      '新しい月のデータをリセットしますか？\n（既存データは保持されます）',
-      Browser.Buttons.YES_NO
-    );
-    
-    if (confirm === 'yes') {
-      sheets.forEach(sheetName => {
-        const sheet = spreadsheet.getSheetByName(sheetName);
-        if (sheet) {
-          console.log(`${sheetName}シートの月次リセット準備完了`); // 修正
-          // 必要に応じて追加処理
+      historyDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="loading"></div> データを読み込み中...</div>';
+
+      const names = ["A", "H"];
+      let content = '';
+      
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const recent = data
+            .map(row => ({ ...row, parsed: new Date(row["日付"]) }))
+            .sort((a, b) => a.parsed - b.parsed)
+            .slice(-10);
+
+          content += `
+            <table>
+              <thead>
+                <tr>
+                  <th colspan="8">📊 ${name} さんの直近10日間の履歴</th>
+                </tr>
+                <tr>
+                  <th>📅 日付</th><th>🛏️ 就寝</th><th>📚 テスト詳細</th><th>🏠 手伝い</th><th>😴 早寝</th><th>🌙 遅寝</th><th>💰 増減</th><th>💵 累積</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          for (const row of recent) {
+            const d = row.parsed;
+            const weekday = "日月火水木金土"[d.getDay()];
+            const dateStr = `${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}(${weekday})`;
+
+            let bedtime = "";
+            const raw = row["就寝時間"];
+            if (typeof raw === "string" && raw.includes("T")) {
+              const t = new Date(raw);
+              if (!isNaN(t)) bedtime = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+            } else if (typeof raw === "string" && raw.includes(":")) {
+              const [h, m] = raw.split(":");
+              bedtime = `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+            }
+
+            let testDetails = "";
+            // 案1：テスト詳細列を優先、なければ既存列も確認
+            if (row["テスト詳細"]) {
+              try {
+                const tests = JSON.parse(row["テスト詳細"]);
+                if (Array.isArray(tests)) {
+                  testDetails = tests.map(test => `${test.subject || '?'}:${test.score}点`).join('<br>');
+                }
+              } catch (e) {
+                testDetails = row["テスト詳細"];
+              }
+            } else if (row["科目"] || row["テスト点数"]) {
+              // 既存データの後方互換性
+              testDetails = `${row["科目"] || '?'}:${row["テスト点数"] || '?'}点`;
+            }
+
+            content += `
+              <tr>
+                <td>${dateStr}</td>
+                <td>${bedtime}</td>
+                <td>${testDetails}</td>
+                <td>${row["お手伝い内容"] || ""}</td>
+                <td>${row["早寝"] == "1" ? "✅" : ""}</td>
+                <td>${row["遅寝"] == "1" ? "❌" : ""}</td>
+                <td>${row["増減"] || ""}</td>
+                <td>${row["累積金額"] || ""}</td>
+              </tr>
+            `;
+          }
+          
+          content += '</tbody></table>';
+        } catch (err) {
+          content += `<p>❌ ${name} さんの履歴取得に失敗しました。</p>`;
+        }
+      }
+      
+      historyDiv.innerHTML = content;
+    }
+
+    async function showLastMonth() {
+      const lastMonthDiv = document.getElementById("lastMonth");
+      lastMonthDiv.style.display = lastMonthDiv.style.display === "none" ? "block" : "none";
+      if (lastMonthDiv.innerHTML) return;
+
+      lastMonthDiv.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="loading"></div> データを読み込み中...</div>';
+
+      const names = ["A", "H"];
+      const now = new Date();
+      let year = now.getFullYear();
+      let month = now.getMonth() - 1;
+      if (month < 0) {
+        month = 11;
+        year--;
+      }
+
+      let html = '<h3 style="text-align: center; margin-bottom: 20px; color: #333;">📈 先月の結果</h3>';
+      
+      for (const name of names) {
+        const url = `${endpoint}?history=true&child=${name}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+
+          const filtered = data.filter(row => {
+            const d = new Date(row["日付"]);
+            return d.getFullYear() === year && d.getMonth() === month;
+          });
+
+          const early = filtered.filter(row => row["早寝"] === 1 || row["早寝"] === "1").length;
+          const late = filtered.filter(row => row["遅寝"] === 1 || row["遅寝"] === "1").length;
+          
+          let test100Count = 0;
+          const testSubjects = {};
+          
+          filtered.forEach(row => {
+            // 案1：テスト詳細列を優先、なければ既存列も確認
+            if (row["テスト詳細"]) {
+              try {
+                const tests = JSON.parse(row["テスト詳細"]);
+                if (Array.isArray(tests)) {
+                  tests.forEach(test => {
+                    if (test.score === 100) {
+                      test100Count++;
+                      const subj = test.subject || "（未入力）";
+                      testSubjects[subj] = (testSubjects[subj] || 0) + 1;
+                    }
+                  });
+                }
+              } catch (e) {}
+            } else if (Number(row["テスト点数"]) === 100) {
+              // 既存データの後方互換性
+              test100Count++;
+              const subj = row["科目"] || "（未入力）";
+              testSubjects[subj] = (testSubjects[subj] || 0) + 1;
+            }
+          });
+
+          const taskRows = filtered.filter(row => row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "");
+          const task = taskRows.length;
+          const taskDetails = {};
+          taskRows.forEach(row => {
+            const taskName = row["お手伝い内容"] || "（未入力）";
+            taskDetails[taskName] = (taskDetails[taskName] || 0) + 1;
+          });
+
+          const total = filtered.reduce((sum, row) => {
+            let delta = 0;
+            // 案1：テスト詳細列を優先、なければ既存列も確認
+            if (row["テスト詳細"]) {
+              try {
+                const tests = JSON.parse(row["テスト詳細"]);
+                if (Array.isArray(tests)) {
+                  delta += tests.filter(test => test.score === 100).length * 100;
+                }
+              } catch (e) {}
+            } else if (Number(row["テスト点数"]) === 100) {
+              // 既存データの後方互換性
+              delta += 100;
+            }
+            if (row["お手伝い内容"] && row["お手伝い内容"].toString().trim() !== "") delta += 10;
+            if (row["早寝"] === 1 || row["早寝"] === "1") delta += 10;
+            if (row["遅寝"] === 1 || row["遅寝"] === "1") delta -= 10;
+            return sum + delta;
+          }, name === "A" ? 600 : 300);
+
+          let testDetailHtml = "";
+          if (test100Count > 0) {
+            testDetailHtml = "<ul style='margin:5px 0;padding-left:1.2em; text-align: left;'>";
+            for (const subj in testSubjects) {
+              testDetailHtml += `<li>${subj}: ${testSubjects[subj]} 回</li>`;
+            }
+            testDetailHtml += "</ul>";
+          }
+
+          let taskDetailHtml = "";
+          if (task > 0) {
+            taskDetailHtml = "<ul style='margin:5px 0;padding-left:1.2em; text-align: left;'>";
+            for (const t in taskDetails) {
+              taskDetailHtml += `<li>${t}: ${taskDetails[t]} 回</li>`;
+            }
+            taskDetailHtml += "</ul>";
+          }
+
+          html += `
+            <table style="margin-bottom: 20px;">
+              <thead>
+                <tr><th colspan="2">🏆 ${name} さんの先月の結果</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>💰 お小遣い</td><td><strong>¥${total}</strong></td></tr>
+                <tr><td>😴 早寝</td><td>${early} 回</td></tr>
+                <tr><td>🌙 遅寝</td><td>${late} 回</td></tr>
+                <tr><td>💯 テスト（100点）</td><td>${test100Count} 回${testDetailHtml}</td></tr>
+                <tr><td>🏠 お手伝い内容</td><td>${task} 回${taskDetailHtml}</td></tr>
+              </tbody>
+            </table>
+          `;
+        } catch (err) {
+          html += `<p>❌ ${name} さんの先月データ取得に失敗しました。</p>`;
+        }
+      }
+      lastMonthDiv.innerHTML = html;
+    }
+
+    // バージョン情報の表示/非表示
+    function showVersionInfo() {
+      const modal = document.getElementById("versionModal");
+      modal.style.display = "flex";
+      
+      // ESCキーでモーダルを閉じる
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeVersionInfo();
         }
       });
       
-      Browser.msgBox('月次リセット完了 (v2.2.0)', '新しい月の準備が完了しました', Browser.Buttons.OK);
+      // モーダル背景クリックで閉じる
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeVersionInfo();
+        }
+      });
     }
-    
-  } catch (error) {
-    console.error('月次リセットエラー:', error);
-  }
-}
 
-/**
- * デバッグ用：スプレッドシートの構造を確認
- */
-function debugSpreadsheetStructure() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheets = spreadsheet.getSheets();
-    
-    console.log('=== スプレッドシート構造デバッグ v2.2.0 ===');
-    console.log(`スプレッドシート名: ${spreadsheet.getName()}`);
-    console.log(`シート数: ${sheets.length}`);
-    
-    sheets.forEach(sheet => {
-      const sheetName = sheet.getName();
-      const lastRow = sheet.getLastRow();
-      const lastCol = sheet.getLastColumn();
-      
-      console.log(`シート: ${sheetName}, 行数: ${lastRow}, 列数: ${lastCol}`);
-      
-      if (lastRow > 0) {
-        const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-        console.log(`  ヘッダー: ${headers.join(', ')}`);
-      }
-    });
-    
-  } catch (error) {
-    console.error('デバッグエラー:', error);
-  }
-}
-
-/**
- * 段階1: シート存在確認
- */
-function testSheetExists() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // すべてのシート名を取得
-    const sheets = spreadsheet.getSheets();
-    const sheetNames = sheets.map(sheet => sheet.getName());
-    
-    Browser.msgBox('シート一覧 (v2.2.0)', `見つかったシート:\n${sheetNames.join('\n')}`, Browser.Buttons.OK);
-    
-    // Aシートの存在確認
-    const sheetA = spreadsheet.getSheetByName('A');
-    if (sheetA) {
-      Browser.msgBox('成功', 'シート「A」が見つかりました！', Browser.Buttons.OK);
-    } else {
-      Browser.msgBox('エラー', 'シート「A」が見つかりません', Browser.Buttons.OK);
+    function closeVersionInfo() {
+      const modal = document.getElementById("versionModal");
+      modal.style.display = "none";
     }
-    
-  } catch (error) {
-    Browser.msgBox('エラー', error.message, Browser.Buttons.OK);
-  }
-}
-
-/**
- * 段階2: 基本書き込みテスト
- */
-function testBasicWrite() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = spreadsheet.getSheetByName('A');
-    
-    if (!sheet) {
-      Browser.msgBox('エラー', 'シート「A」が見つかりません', Browser.Buttons.OK);
-      return;
-    }
-    
-    // 最も基本的な書き込み
-    sheet.getRange('A1').setValue('テスト書き込み');
-    
-    Browser.msgBox('成功 (v2.2.0)', 'A1セルに「テスト書き込み」を書きました！', Browser.Buttons.OK);
-    
-  } catch (error) {
-    Browser.msgBox('エラー', error.message, Browser.Buttons.OK);
-  }
-}
-
-/**
- * 緊急テスト：testsパラメータをシミュレート
- */
-function testSimulateTests() {
-  try {
-    // 実際のフロントエンドから送信されるデータをシミュレート
-    const mockEvent = {
-      parameter: {
-        child: 'A',
-        date: '2025-06-02',
-        bedtime: '22:19',
-        task: '',
-        early: 'false',
-        late: 'false',
-        test: '100',
-        subject: '国語',
-        tests: '[{"score":100,"subject":"国語"},{"score":100,"subject":"算数"}]'
-      }
-    };
-    
-    console.log('モックイベント作成:', mockEvent);
-    
-    // doPost関数を直接呼び出し
-    const result = doPost(mockEvent);
-    
-    Browser.msgBox('テスト完了 (v2.2.0)', 'testsパラメータのシミュレーションが完了しました。\nスプレッドシートのE列を確認してください。', Browser.Buttons.OK);
-    
-  } catch (error) {
-    console.error('シミュレーションエラー:', error);
-    Browser.msgBox('エラー', 'エラー: ' + error.message, Browser.Buttons.OK);
-  }
-}
-
-/**
- * 緊急デバッグ：最新行のテスト詳細を確認
- */
-function debugLatestRow() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = spreadsheet.getSheetByName('A');
-    
-    if (!sheet) {
-      Browser.msgBox('エラー', 'シート「A」が見つかりません', Browser.Buttons.OK);
-      return;
-    }
-    
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) {
-      Browser.msgBox('情報', 'データがありません', Browser.Buttons.OK);
-      return;
-    }
-    
-    // 最新行のデータを取得
-    const rowData = sheet.getRange(lastRow, 1, 1, 10).getValues()[0];
-    
-    const info = `最新行のデータ (v2.2.0):
-日付: ${rowData[0]}
-就寝時間: ${rowData[1]}
-テスト点数: ${rowData[2]}
-科目: ${rowData[3]}
-テスト詳細: "${rowData[4]}"
-お手伝い: ${rowData[5]}
-早寝: ${rowData[6]}
-遅寝: ${rowData[7]}
-増減: ${rowData[8]}
-累積: ${rowData[9]}
-
-E列が空か?: ${rowData[4] === '' ? 'はい' : 'いいえ'}
-E列の型: ${typeof rowData[4]}`;
-    
-    Browser.msgBox('最新行デバッグ', info, Browser.Buttons.OK);
-    
-  } catch (error) {
-    Browser.msgBox('エラー', error.message, Browser.Buttons.OK);
-  }
-}
-function debugLatestRow() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = spreadsheet.getSheetByName('A');
-    
-    if (!sheet) {
-      Browser.msgBox('エラー', 'シート「A」が見つかりません', Browser.Buttons.OK);
-      return;
-    }
-    
-    const lastRow = sheet.getLastRow();
-    if (lastRow <= 1) {
-      Browser.msgBox('情報', 'データがありません', Browser.Buttons.OK);
-      return;
-    }
-    
-    // 最新行のデータを取得
-    const rowData = sheet.getRange(lastRow, 1, 1, 10).getValues()[0];
-    
-    const info = `最新行のデータ:
-日付: ${rowData[0]}
-就寝時間: ${rowData[1]}
-テスト点数: ${rowData[2]}
-科目: ${rowData[3]}
-テスト詳細: "${rowData[4]}"
-お手伝い: ${rowData[5]}
-早寝: ${rowData[6]}
-遅寝: ${rowData[7]}
-増減: ${rowData[8]}
-累積: ${rowData[9]}
-
-E列が空か?: ${rowData[4] === '' ? 'はい' : 'いいえ'}
-E列の型: ${typeof rowData[4]}`;
-    
-    Browser.msgBox('最新行デバッグ', info, Browser.Buttons.OK);
-    
-  } catch (error) {
-    Browser.msgBox('エラー', error.message, Browser.Buttons.OK);
-  }
-}
-function testWriteColumn() {
-  try {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = spreadsheet.getSheetByName('A'); // 修正: 'Aさん'→'A'
-    
-    if (!sheet) {
-      Browser.msgBox('「A」シートが見つかりません');
-      return;
-    }
-    
-    // テストデータ
-    const testData = [{"score":100,"subject":"国語"},{"score":90,"subject":"算数"}];
-    const testJSON = JSON.stringify(testData);
-    
-    console.log('テストJSON:', testJSON);
-    
-    // 新しい行を追加
-    const newRow = [
-      '2025-06-02',      // A列：日付
-      '6:07',            // B列：就寝時間
-      '100',             // C列：テスト点数
-      '国語',            // D列：科目
-      testJSON,          // E列：テスト詳細 ←これが問題の列
-      '',                // F列：お手伝い
-      0,                 // G列：早寝
-      0,                 // H列：遅寝
-      100,               // I列：増減
-      700                // J列：累積金額
-    ];
-    
-    sheet.appendRow(newRow);
-    
-    console.log('テスト行を追加しました');
-    Browser.msgBox('テスト完了！スプレッドシートのE列を確認してください。');
-    
-  } catch (error) {
-    console.error('エラー:', error);
-    Browser.msgBox('エラー: ' + error.message);
-  }
-}
+  </script>
+</body>
+</html>
