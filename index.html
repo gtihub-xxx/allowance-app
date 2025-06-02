@@ -40,6 +40,43 @@
     .header p {
       font-size: 1.2rem;
       opacity: 0.9;
+      margin-bottom: 15px;
+    }
+
+    .version-info {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .version-badge {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .version-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .version-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.05);
     }
 
     @keyframes bounce {
@@ -507,6 +544,21 @@
       .total-amount {
         font-size: 2rem;
       }
+      
+      .version-info {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .version-content {
+        margin: 10px;
+        padding: 20px;
+        max-height: 90vh;
+      }
+      
+      .version-title {
+        font-size: 1.5rem;
+      }
     }
 
     .loading {
@@ -522,6 +574,109 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* バージョン情報モーダル */
+    .version-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .version-content {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      margin: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+    }
+
+    .version-header {
+      text-align: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #f8f9fa;
+    }
+
+    .version-title {
+      font-size: 1.8rem;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .version-current {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .version-section {
+      margin-bottom: 20px;
+    }
+
+    .version-section h3 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      border-left: 4px solid #667eea;
+      padding-left: 10px;
+    }
+
+    .version-section ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .version-section li {
+      padding: 5px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .version-section li:before {
+      content: '✅';
+      position: absolute;
+      left: 0;
+    }
+
+    .version-close {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+      transition: color 0.3s ease;
+    }
+
+    .version-close:hover {
+      color: #333;
+    }
+
+    .version-footer {
+      text-align: center;
+      margin-top: 25px;
+      padding-top: 15px;
+      border-top: 2px solid #f8f9fa;
+      color: #666;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 <body>
@@ -529,6 +684,10 @@
     <div class="header">
       <h1>🏆 お小遣い管理システム 💰</h1>
       <p>頑張った分だけお小遣いがもらえるよ！</p>
+      <div class="version-info">
+        <span class="version-badge">v2.1.0</span>
+        <button class="version-btn" onclick="showVersionInfo()">ℹ️ システム情報</button>
+      </div>
     </div>
 
     <div class="children-container">
@@ -752,6 +911,54 @@
 
     <div id="history" class="history-section" style="display:none;"></div>
     <div id="lastMonth" class="last-month-section" style="display:none;"></div>
+
+    <!-- バージョン情報モーダル -->
+    <div id="versionModal" class="version-modal">
+      <div class="version-content">
+        <button class="version-close" onclick="closeVersionInfo()">×</button>
+        
+        <div class="version-header">
+          <h2 class="version-title">🏆 お小遣い管理システム</h2>
+          <div class="version-current">Version 2.1.0</div>
+        </div>
+
+        <div class="version-section">
+          <h3>📱 新機能 v2.1.0</h3>
+          <ul>
+            <li>複数テスト対応: 1日に複数のテストを記録可能</li>
+            <li>動的テスト追加: 「テストを追加」ボタンで無制限追加</li>
+            <li>リッチUI: モダンなカードデザイン、アニメーション効果</li>
+            <li>レスポンシブデザイン: スマホ・タブレット・PC対応</li>
+          </ul>
+        </div>
+
+        <div class="version-section">
+          <h3>🎯 基本機能</h3>
+          <ul>
+            <li>子供別管理: Aさん（基本600円）、Hさん（基本300円）</li>
+            <li>ポイント制: テスト100点(+100円)、お手伝い(+10円)</li>
+            <li>生活習慣: 早寝(+10円)、遅寝(-10円)</li>
+            <li>履歴管理: 直近10日間の記録表示</li>
+            <li>月次集計: 先月の結果表示</li>
+          </ul>
+        </div>
+
+        <div class="version-section">
+          <h3>🔧 システム構成</h3>
+          <ul>
+            <li>フロントエンド: HTML/CSS/JavaScript</li>
+            <li>バックエンド: Google Apps Script</li>
+            <li>データベース: Google Spreadsheet</li>
+            <li>複数テスト: JSON形式でデータ保存</li>
+          </ul>
+        </div>
+
+        <div class="version-footer">
+          <p>最終更新: 2025年6月2日</p>
+          <p>🎉 複数テスト機能が完全動作中！</p>
+        </div>
+      </div>
+    </div>
 
     <div class="spreadsheet-link">
       <a href="https://docs.google.com/spreadsheets/d/1TYzfK0qGEYS-_njaXugkHO8knr1dJTOqPU_4qrDva_s/edit?usp=sharing" target="_blank" rel="noopener noreferrer">
@@ -1312,6 +1519,31 @@
         }
       }
       lastMonthDiv.innerHTML = html;
+    }
+
+    // バージョン情報の表示/非表示
+    function showVersionInfo() {
+      const modal = document.getElementById("versionModal");
+      modal.style.display = "flex";
+      
+      // ESCキーでモーダルを閉じる
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeVersionInfo();
+        }
+      });
+      
+      // モーダル背景クリックで閉じる
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeVersionInfo();
+        }
+      });
+    }
+
+    function closeVersionInfo() {
+      const modal = document.getElementById("versionModal");
+      modal.style.display = "none";
     }
   </script>
 </body>
