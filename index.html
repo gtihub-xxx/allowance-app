@@ -685,7 +685,7 @@
       <h1>🏆 お小遣い管理システム 💰</h1>
       <p>頑張った分だけお小遣いがもらえるよ！</p>
       <div class="version-info">
-        <span class="version-badge">v2.1.0</span>
+        <span class="version-badge">v2.1.1</span>
         <button class="version-btn" onclick="showVersionInfo()">ℹ️ システム情報</button>
       </div>
     </div>
@@ -1141,14 +1141,41 @@
         console.log('既存列用データ: テストなし');
       }
       
-      // 新しいテスト詳細列
+      // 【修正】新しいテスト詳細列 - FormDataの制限を回避
       const testsJSON = JSON.stringify(tests);
-      formData.append("tests", testsJSON);
       console.log(`テスト詳細JSON:`, testsJSON);
+      
+      // FormDataの代わりにURLSearchParamsを使用
+      const params = new URLSearchParams();
+      params.append("child", child);
+      params.append("date", form.date.value);
+      params.append("bedtime", form.bedtime.value);
+      params.append("early", form.early.checked);
+      params.append("late", form.late.checked);
+      params.append("task", taskVal);
+      
+      if (tests.length > 0) {
+        params.append("test", tests[0].score);
+        params.append("subject", tests[0].subject);
+      } else {
+        params.append("test", "");
+        params.append("subject", "");
+      }
+      
+      // 重要：testsパラメータを確実に送信
+      params.append("tests", testsJSON);
+      
+      console.log('送信パラメータ一覧:');
+      for (const [key, value] of params.entries()) {
+        console.log(`  ${key}: ${value}`);
+      }
 
       fetch(endpoint, {
         method: "POST",
-        body: formData
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params
       })
       .then(res => res.text())
       .then(msg => {
