@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🏆 お小遣い管理システム v2.2.0</title>
+  <title>🏆 お小遣い管理システム v2.3.0</title>
   <style>
     * {
       margin: 0;
@@ -34,7 +34,6 @@
     .header h1 {
       font-size: 2.5rem;
       margin-bottom: 10px;
-      animation: bounce 2s infinite;
     }
 
     .header p {
@@ -47,36 +46,38 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 15px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 5px;
+      opacity: 0.8;
     }
 
     .version-badge {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      padding: 5px 12px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      font-weight: bold;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: normal;
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .version-btn {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.7rem;
       cursor: pointer;
       transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(5px);
     }
 
     .version-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-      transform: scale(1.05);
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      transform: scale(1.02);
     }
 
     @keyframes bounce {
@@ -556,7 +557,8 @@
       
       .version-info {
         flex-direction: column;
-        gap: 10px;
+        gap: 5px;
+        opacity: 0.7;
       }
       
       .version-content {
@@ -699,7 +701,7 @@
       <h1>🏆 お小遣い管理システム 💰</h1>
       <p>頑張った分だけお小遣いがもらえるよ！</p>
       <div class="version-info">
-        <span class="version-badge">v2.2.0</span>
+        <span class="version-badge">v2.3.0</span>
         <button class="version-btn" onclick="showVersionInfo()">ℹ️ システム情報</button>
       </div>
     </div>
@@ -933,15 +935,23 @@
         
         <div class="version-header">
           <h2 class="version-title">🏆 お小遣い管理システム</h2>
-          <div class="version-current">Version 2.2.0</div>
+          <div class="version-current">Version 2.3.0</div>
         </div>
 
         <div class="version-section">
-          <h3>✨ 新機能 v2.2.0</h3>
+          <h3>✨ 新機能 v2.3.0</h3>
+          <ul>
+            <li>バージョン表示の最適化: 控えめで洗練された表示</li>
+            <li>アニメーション最適化: タイトルアニメーションを削除</li>
+            <li>UI洗練: より落ち着いた、使いやすいデザイン</li>
+          </ul>
+        </div>
+
+        <div class="version-section">
+          <h3>🎯 レイアウト改善 v2.2.0</h3>
           <ul>
             <li>統計レイアウト改善: 2x2グリッドで見やすく表示</li>
             <li>モバイル最適化: 小画面でも2x2レイアウトを維持</li>
-            <li>バージョン管理: コード改良ごとの自動バージョン更新</li>
           </ul>
         </div>
 
@@ -977,8 +987,8 @@
         </div>
 
         <div class="version-footer">
-          <p>最終更新: 2025年6月2日 v2.2.0</p>
-          <p>🎉 複数テスト機能 + 2x2統計レイアウト完全動作中！</p>
+          <p>最終更新: 2025年6月2日 v2.3.0</p>
+          <p>🎉 洗練されたUIで快適動作中！</p>
         </div>
       </div>
     </div>
